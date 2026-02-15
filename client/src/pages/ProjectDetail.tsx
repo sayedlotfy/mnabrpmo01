@@ -1,4 +1,3 @@
-import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -54,7 +53,6 @@ function Badge({ children, type = "neutral" }: { children: React.ReactNode; type
 export default function ProjectDetail() {
   const [, params] = useRoute("/projects/:id");
   const projectId = params?.id ? parseInt(params.id) : 0;
-  const { isAuthenticated } = useAuth();
   const { lang, toggleLanguage, isRTL, t } = useLanguage();
   const utils = trpc.useUtils();
 
@@ -64,25 +62,25 @@ export default function ProjectDetail() {
 
   // ---- Queries ----
   const { data: project, isLoading: projectLoading } = trpc.projects.get.useQuery(
-    { id: projectId }, { enabled: isAuthenticated && projectId > 0 }
+    { id: projectId }, { enabled: projectId > 0 }
   );
   const { data: staffList = [] } = trpc.staff.list.useQuery(
-    { projectId }, { enabled: isAuthenticated && projectId > 0 }
+    { projectId }, { enabled: projectId > 0 }
   );
   const { data: budgetLaborList = [] } = trpc.budgetLabor.list.useQuery(
-    { projectId }, { enabled: isAuthenticated && projectId > 0 }
+    { projectId }, { enabled: projectId > 0 }
   );
   const { data: budgetExpensesList = [] } = trpc.budgetExpenses.list.useQuery(
-    { projectId }, { enabled: isAuthenticated && projectId > 0 }
+    { projectId }, { enabled: projectId > 0 }
   );
   const { data: timeLogsList = [] } = trpc.timeLogs.list.useQuery(
-    { projectId }, { enabled: isAuthenticated && projectId > 0 }
+    { projectId }, { enabled: projectId > 0 }
   );
   const { data: expensesList = [] } = trpc.expenses.list.useQuery(
-    { projectId }, { enabled: isAuthenticated && projectId > 0 }
+    { projectId }, { enabled: projectId > 0 }
   );
   const { data: paymentsList = [] } = trpc.payments.list.useQuery(
-    { projectId }, { enabled: isAuthenticated && projectId > 0 }
+    { projectId }, { enabled: projectId > 0 }
   );
 
   // ---- Mutations ----

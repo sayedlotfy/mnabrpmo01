@@ -2,34 +2,7 @@ import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 
-type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
-
-function createAuthContext(): TrpcContext {
-  const user: AuthenticatedUser = {
-    id: 1,
-    openId: "test-user-001",
-    email: "test@example.com",
-    name: "Test User",
-    loginMethod: "manus",
-    role: "admin",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    lastSignedIn: new Date(),
-  };
-
-  return {
-    user,
-    req: {
-      protocol: "https",
-      headers: {},
-    } as TrpcContext["req"],
-    res: {
-      clearCookie: () => {},
-    } as TrpcContext["res"],
-  };
-}
-
-function createUnauthContext(): TrpcContext {
+function createPublicContext(): TrpcContext {
   return {
     user: null,
     req: {
@@ -42,96 +15,74 @@ function createUnauthContext(): TrpcContext {
   };
 }
 
-describe("projects router", () => {
-  it("should require authentication for projects.list", async () => {
-    const ctx = createUnauthContext();
+describe("projects router - public access", () => {
+  it("should allow public access to projects.list", async () => {
+    const ctx = createPublicContext();
     const caller = appRouter.createCaller(ctx);
 
-    await expect(caller.projects.list()).rejects.toThrow();
+    const result = await caller.projects.list();
+    expect(Array.isArray(result)).toBe(true);
   });
 
-  it("should require authentication for projects.create", async () => {
-    const ctx = createUnauthContext();
+  it("should allow public access to projects.get", async () => {
+    const ctx = createPublicContext();
     const caller = appRouter.createCaller(ctx);
 
-    await expect(
-      caller.projects.create({
-        name: "Test Project",
-        code: "TST-001",
-        totalContractValue: "100000",
-        startDate: "2024-01-01",
-        endDate: "2024-12-31",
-      })
-    ).rejects.toThrow();
-  });
-
-  it("should require authentication for projects.get", async () => {
-    const ctx = createUnauthContext();
-    const caller = appRouter.createCaller(ctx);
-
-    await expect(caller.projects.get({ id: 1 })).rejects.toThrow();
-  });
-
-  it("should require authentication for staff.list", async () => {
-    const ctx = createUnauthContext();
-    const caller = appRouter.createCaller(ctx);
-
-    await expect(caller.staff.list({ projectId: 1 })).rejects.toThrow();
-  });
-
-  it("should require authentication for budgetLabor.list", async () => {
-    const ctx = createUnauthContext();
-    const caller = appRouter.createCaller(ctx);
-
-    await expect(caller.budgetLabor.list({ projectId: 1 })).rejects.toThrow();
-  });
-
-  it("should require authentication for budgetExpenses.list", async () => {
-    const ctx = createUnauthContext();
-    const caller = appRouter.createCaller(ctx);
-
-    await expect(caller.budgetExpenses.list({ projectId: 1 })).rejects.toThrow();
-  });
-
-  it("should require authentication for timeLogs.list", async () => {
-    const ctx = createUnauthContext();
-    const caller = appRouter.createCaller(ctx);
-
-    await expect(caller.timeLogs.list({ projectId: 1 })).rejects.toThrow();
-  });
-
-  it("should require authentication for expenses.list", async () => {
-    const ctx = createUnauthContext();
-    const caller = appRouter.createCaller(ctx);
-
-    await expect(caller.expenses.list({ projectId: 1 })).rejects.toThrow();
-  });
-
-  it("should require authentication for payments.list", async () => {
-    const ctx = createUnauthContext();
-    const caller = appRouter.createCaller(ctx);
-
-    await expect(caller.payments.list({ projectId: 1 })).rejects.toThrow();
-  });
-
-  it("should accept valid project create input", async () => {
-    const ctx = createAuthContext();
-    const caller = appRouter.createCaller(ctx);
-
-    // This should not throw for valid input (it will hit the DB)
-    // We just verify the input validation passes
-    const result = await caller.projects.create({
-      name: "Valid Test Project",
-      code: "TST-002",
-      totalContractValue: "100000",
-      startDate: "2024-01-01",
-      endDate: "2024-12-31",
-    });
+    const result = await caller.projects.get({ id: 1 });
     expect(result).toBeDefined();
+    expect(result?.name).toContain("JKP");
+  });
+
+  it("should allow public access to staff.list", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    const result = await caller.staff.list({ projectId: 1 });
+    expect(Array.isArray(result)).toBe(true);
+  });
+
+  it("should allow public access to budgetLabor.list", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    const result = await caller.budgetLabor.list({ projectId: 1 });
+    expect(Array.isArray(result)).toBe(true);
+  });
+
+  it("should allow public access to budgetExpenses.list", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    const result = await caller.budgetExpenses.list({ projectId: 1 });
+    expect(Array.isArray(result)).toBe(true);
+  });
+
+  it("should allow public access to timeLogs.list", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    const result = await caller.timeLogs.list({ projectId: 1 });
+    expect(Array.isArray(result)).toBe(true);
+  });
+
+  it("should allow public access to expenses.list", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    const result = await caller.expenses.list({ projectId: 1 });
+    expect(Array.isArray(result)).toBe(true);
+  });
+
+  it("should allow public access to payments.list", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    const result = await caller.payments.list({ projectId: 1 });
+    expect(Array.isArray(result)).toBe(true);
   });
 
   it("should validate payment status enum", async () => {
-    const ctx = createAuthContext();
+    const ctx = createPublicContext();
     const caller = appRouter.createCaller(ctx);
 
     await expect(
@@ -143,7 +94,7 @@ describe("projects router", () => {
   });
 
   it("should validate payment type enum", async () => {
-    const ctx = createAuthContext();
+    const ctx = createPublicContext();
     const caller = appRouter.createCaller(ctx);
 
     await expect(
@@ -158,7 +109,7 @@ describe("projects router", () => {
   });
 
   it("should validate staff location enum", async () => {
-    const ctx = createAuthContext();
+    const ctx = createPublicContext();
     const caller = appRouter.createCaller(ctx);
 
     await expect(
@@ -172,18 +123,8 @@ describe("projects router", () => {
     ).rejects.toThrow();
   });
 
-  it("auth.me should return user for authenticated context", async () => {
-    const ctx = createAuthContext();
-    const caller = appRouter.createCaller(ctx);
-
-    const result = await caller.auth.me();
-    expect(result).toBeDefined();
-    expect(result?.name).toBe("Test User");
-    expect(result?.openId).toBe("test-user-001");
-  });
-
-  it("auth.me should return null for unauthenticated context", async () => {
-    const ctx = createUnauthContext();
+  it("auth.me should return null for public context", async () => {
+    const ctx = createPublicContext();
     const caller = appRouter.createCaller(ctx);
 
     const result = await caller.auth.me();

@@ -1,0 +1,9 @@
+{
+  "query": "DELETE FROM budgetLabor WHERE projectId != 1; DELETE FROM budgetExpenses WHERE projectId != 1; DELETE FROM timeLogs WHERE projectId != 1; DELETE FROM expenses WHERE projectId != 1; DELETE FROM payments WHERE projectId != 1; DELETE FROM staff WHERE projectId != 1; DELETE FROM projects WHERE id != 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3GFQbUAg4PvgXYh.92d5e419220b --database eFfuN9v8AVB9nn8xTmwtHX --execute DELETE FROM budgetLabor WHERE projectId != 1; DELETE FROM budgetExpenses WHERE projectId != 1; DELETE FROM timeLogs WHERE projectId != 1; DELETE FROM expenses WHERE projectId != 1; DELETE FROM payments WHERE projectId != 1; DELETE FROM staff WHERE projectId != 1; DELETE FROM projects WHERE id != 1;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 2841
+}

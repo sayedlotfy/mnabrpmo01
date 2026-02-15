@@ -113,34 +113,34 @@ export async function createProject(data: InsertProject) {
   return result;
 }
 
-export async function getUserProjects(userId: number) {
+export async function getAllProjects() {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   
-  return await db.select().from(projects).where(eq(projects.userId, userId)).orderBy(desc(projects.updatedAt));
+  return await db.select().from(projects).orderBy(desc(projects.updatedAt));
 }
 
-export async function getProjectById(projectId: number, userId: number) {
+export async function getProjectById(projectId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   
   const result = await db.select().from(projects)
-    .where(and(eq(projects.id, projectId), eq(projects.userId, userId)))
+    .where(eq(projects.id, projectId))
     .limit(1);
   
   return result.length > 0 ? result[0] : null;
 }
 
-export async function updateProject(projectId: number, userId: number, data: Partial<InsertProject>) {
+export async function updateProject(projectId: number, data: Partial<InsertProject>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   
   return await db.update(projects)
     .set(data)
-    .where(and(eq(projects.id, projectId), eq(projects.userId, userId)));
+    .where(eq(projects.id, projectId));
 }
 
-export async function deleteProject(projectId: number, userId: number) {
+export async function deleteProject(projectId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   
@@ -153,7 +153,7 @@ export async function deleteProject(projectId: number, userId: number) {
   await db.delete(payments).where(eq(payments.projectId, projectId));
   
   return await db.delete(projects)
-    .where(and(eq(projects.id, projectId), eq(projects.userId, userId)));
+    .where(eq(projects.id, projectId));
 }
 
 // ============ Staff ============

@@ -1,38 +1,35 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { publicProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
 import { invokeLLM } from "./_core/llm";
 
 export const appRouter = router({
-    // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      return {
-        success: true,
-      } as const;
+      return { success: true } as const;
     }),
   }),
 
   // ============ Projects ============
   projects: router({
-    list: protectedProcedure.query(async ({ ctx }) => {
-      return await db.getUserProjects(ctx.user.id);
+    list: publicProcedure.query(async () => {
+      return await db.getAllProjects();
     }),
 
-    get: protectedProcedure
+    get: publicProcedure
       .input(z.object({ id: z.number() }))
-      .query(async ({ ctx, input }) => {
-        return await db.getProjectById(input.id, ctx.user.id);
+      .query(async ({ input }) => {
+        return await db.getProjectById(input.id);
       }),
 
-    create: protectedProcedure
+    create: publicProcedure
       .input(z.object({
         name: z.string(),
         code: z.string(),
@@ -45,16 +42,14 @@ export const appRouter = router({
         startDate: z.string(),
         endDate: z.string(),
       }))
-      .mutation(async ({ ctx, input }) => {
+      .mutation(async ({ input }) => {
         return await db.createProject({
           ...input,
-          startDate: input.startDate,
-          endDate: input.endDate,
-          userId: ctx.user.id,
+          userId: 1,
         });
       }),
 
-    update: protectedProcedure
+    update: publicProcedure
       .input(z.object({
         id: z.number(),
         name: z.string().optional(),
@@ -72,27 +67,27 @@ export const appRouter = router({
         isPaused: z.boolean().optional(),
         pauseStartDate: z.string().optional(),
       }))
-      .mutation(async ({ ctx, input }) => {
+      .mutation(async ({ input }) => {
         const { id, ...data } = input;
-        return await db.updateProject(id, ctx.user.id, data);
+        return await db.updateProject(id, data);
       }),
 
-    delete: protectedProcedure
+    delete: publicProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ ctx, input }) => {
-        return await db.deleteProject(input.id, ctx.user.id);
+      .mutation(async ({ input }) => {
+        return await db.deleteProject(input.id);
       }),
   }),
 
   // ============ Staff ============
   staff: router({
-    list: protectedProcedure
+    list: publicProcedure
       .input(z.object({ projectId: z.number() }))
       .query(async ({ input }) => {
         return await db.getProjectStaff(input.projectId);
       }),
 
-    create: protectedProcedure
+    create: publicProcedure
       .input(z.object({
         projectId: z.number(),
         name: z.string(),
@@ -104,7 +99,7 @@ export const appRouter = router({
         return await db.createStaff(input);
       }),
 
-    delete: protectedProcedure
+    delete: publicProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         return await db.deleteStaff(input.id);
@@ -113,13 +108,13 @@ export const appRouter = router({
 
   // ============ Budget Labor ============
   budgetLabor: router({
-    list: protectedProcedure
+    list: publicProcedure
       .input(z.object({ projectId: z.number() }))
       .query(async ({ input }) => {
         return await db.getProjectBudgetLabor(input.projectId);
       }),
 
-    create: protectedProcedure
+    create: publicProcedure
       .input(z.object({
         projectId: z.number(),
         staffId: z.number(),
@@ -129,7 +124,7 @@ export const appRouter = router({
         return await db.createBudgetLabor(input);
       }),
 
-    delete: protectedProcedure
+    delete: publicProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         return await db.deleteBudgetLabor(input.id);
@@ -138,13 +133,13 @@ export const appRouter = router({
 
   // ============ Budget Expenses ============
   budgetExpenses: router({
-    list: protectedProcedure
+    list: publicProcedure
       .input(z.object({ projectId: z.number() }))
       .query(async ({ input }) => {
         return await db.getProjectBudgetExpenses(input.projectId);
       }),
 
-    create: protectedProcedure
+    create: publicProcedure
       .input(z.object({
         projectId: z.number(),
         category: z.string(),
@@ -154,7 +149,7 @@ export const appRouter = router({
         return await db.createBudgetExpense(input);
       }),
 
-    delete: protectedProcedure
+    delete: publicProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         return await db.deleteBudgetExpense(input.id);
@@ -163,13 +158,13 @@ export const appRouter = router({
 
   // ============ Time Logs ============
   timeLogs: router({
-    list: protectedProcedure
+    list: publicProcedure
       .input(z.object({ projectId: z.number() }))
       .query(async ({ input }) => {
         return await db.getProjectTimeLogs(input.projectId);
       }),
 
-    create: protectedProcedure
+    create: publicProcedure
       .input(z.object({
         projectId: z.number(),
         staffId: z.number(),
@@ -180,14 +175,10 @@ export const appRouter = router({
         endDate: z.string(),
       }))
       .mutation(async ({ input }) => {
-        return await db.createTimeLog({
-          ...input,
-          startDate: input.startDate,
-          endDate: input.endDate,
-        });
+        return await db.createTimeLog(input);
       }),
 
-    delete: protectedProcedure
+    delete: publicProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         return await db.deleteTimeLog(input.id);
@@ -196,13 +187,13 @@ export const appRouter = router({
 
   // ============ Expenses ============
   expenses: router({
-    list: protectedProcedure
+    list: publicProcedure
       .input(z.object({ projectId: z.number() }))
       .query(async ({ input }) => {
         return await db.getProjectExpenses(input.projectId);
       }),
 
-    create: protectedProcedure
+    create: publicProcedure
       .input(z.object({
         projectId: z.number(),
         category: z.string(),
@@ -214,7 +205,7 @@ export const appRouter = router({
         return await db.createExpense(input);
       }),
 
-    delete: protectedProcedure
+    delete: publicProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         return await db.deleteExpense(input.id);
@@ -223,13 +214,13 @@ export const appRouter = router({
 
   // ============ Payments ============
   payments: router({
-    list: protectedProcedure
+    list: publicProcedure
       .input(z.object({ projectId: z.number() }))
       .query(async ({ input }) => {
         return await db.getProjectPayments(input.projectId);
       }),
 
-    create: protectedProcedure
+    create: publicProcedure
       .input(z.object({
         projectId: z.number(),
         title: z.string(),
@@ -240,13 +231,10 @@ export const appRouter = router({
         status: z.enum(["Pending", "Due", "Claimed", "Invoiced", "PaidPartial", "PaidFull"]).default("Pending"),
       }))
       .mutation(async ({ input }) => {
-        return await db.createPayment({
-          ...input,
-          date: input.date,
-        });
+        return await db.createPayment(input);
       }),
 
-    updateStatus: protectedProcedure
+    updateStatus: publicProcedure
       .input(z.object({
         id: z.number(),
         status: z.enum(["Pending", "Due", "Claimed", "Invoiced", "PaidPartial", "PaidFull"]),
@@ -257,7 +245,7 @@ export const appRouter = router({
         return await db.updatePayment(id, data);
       }),
 
-    delete: protectedProcedure
+    delete: publicProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         return await db.deletePayment(input.id);
@@ -266,7 +254,7 @@ export const appRouter = router({
 
   // ============ AI Integration ============
   ai: router({
-    generateReport: protectedProcedure
+    generateReport: publicProcedure
       .input(z.object({
         projectData: z.string(),
       }))
@@ -299,7 +287,7 @@ ${input.projectData}
         }
       }),
 
-    categorizeExpense: protectedProcedure
+    categorizeExpense: publicProcedure
       .input(z.object({
         description: z.string(),
       }))

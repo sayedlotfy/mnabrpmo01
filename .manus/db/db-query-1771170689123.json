@@ -1,0 +1,25 @@
+{
+  "query": "SELECT id, name, code FROM projects;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3GFQbUAg4PvgXYh.92d5e419220b --database eFfuN9v8AVB9nn8xTmwtHX --execute SELECT id, name, code FROM projects;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "برج المشاريع الأولي - JKP",
+      "code": "PRJ-24-001"
+    },
+    {
+      "id": "2",
+      "name": "",
+      "code": "TST-001"
+    },
+    {
+      "id": "3",
+      "name": "Valid Test Project",
+      "code": "TST-002"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tcode\n1\tبرج المشاريع الأولي - JKP\tPRJ-24-001\n2\t\tTST-001\n3\tValid Test Project\tTST-002\n",
+  "stderr": "",
+  "execution_time_ms": 1552
+}
