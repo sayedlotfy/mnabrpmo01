@@ -1,0 +1,14 @@
+{
+  "query": "\n-- First get the user ID\nSELECT id, name FROM users LIMIT 5;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3GFQbUAg4PvgXYh.92d5e419220b --database eFfuN9v8AVB9nn8xTmwtHX --execute \n-- First get the user ID\nSELECT id, name FROM users LIMIT 5;\n",
+  "rows": [
+    {
+      "id": "1",
+      "name": "AL Sayed Lotfy"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\n1\tAL Sayed Lotfy\n",
+  "stderr": "",
+  "execution_time_ms": 1612
+}

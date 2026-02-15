@@ -1,5 +1,34 @@
 {
   "version": "7",
   "dialect": "mysql",
-  "entries": []
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1771167105144,
+      "tag": "0000_dazzling_masque",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1771167255074,
+      "tag": "0001_abnormal_ares",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1771167783071,
+      "tag": "0002_aromatic_black_panther",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1771167805972,
+      "tag": "0003_rapid_kulan_gath",
+      "breakpoints": true
+    }
+  ]
 }

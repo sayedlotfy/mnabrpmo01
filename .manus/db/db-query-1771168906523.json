@@ -1,0 +1,13 @@
+{
+  "query": "\nSELECT id FROM projects WHERE code = 'PRJ-24-001' LIMIT 1;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3GFQbUAg4PvgXYh.92d5e419220b --database eFfuN9v8AVB9nn8xTmwtHX --execute \nSELECT id FROM projects WHERE code = 'PRJ-24-001' LIMIT 1;\n",
+  "rows": [
+    {
+      "id": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\n1\n",
+  "stderr": "",
+  "execution_time_ms": 1515
+}

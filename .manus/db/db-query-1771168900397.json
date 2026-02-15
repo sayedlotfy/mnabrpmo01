@@ -1,0 +1,9 @@
+{
+  "query": "\nINSERT INTO projects (userId, name, code, manager, coordinator, totalContractValue, overheadMultiplier, targetMargin, currency, startDate, endDate, stoppageDays, percentComplete, isPaused)\nVALUES (1, 'برج المشاريع الأولي - JKP', 'PRJ-24-001', 'م. أحمد', 'م. سارة', 1500000, 2.5, 20, 'SAR', '2024-01-01', '2024-12-31', 0, 15, false);\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3GFQbUAg4PvgXYh.92d5e419220b --database eFfuN9v8AVB9nn8xTmwtHX --execute \nINSERT INTO projects (userId, name, code, manager, coordinator, totalContractValue, overheadMultiplier, targetMargin, currency, startDate, endDate, stoppageDays, percentComplete, isPaused)\nVALUES (1, 'برج المشاريع الأولي - JKP', 'PRJ-24-001', 'م. أحمد', 'م. سارة', 1500000, 2.5, 20, 'SAR', '2024-01-01', '2024-12-31', 0, 15, false);\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1545
+}
