@@ -1,14 +1,14 @@
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/NotFound';
-import { Route, Switch, Redirect } from 'wouter';
+import { Route, Switch, Redirect, Router } from 'wouter';
 import ErrorBoundary from './components/ErrorBoundary';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import ProjectDetail from './pages/ProjectDetail';
 import ProjectsList from './pages/ProjectsList';
 
-function Router() {
+function RouterContent() {
   return (
     <Switch>
       <Route path="/">
@@ -29,7 +29,9 @@ function App() {
         <LanguageProvider>
           <TooltipProvider>
             <Toaster />
-            <Router />
+            <Router base="/mnabrpmo01">
+              <RouterContent />
+            </Router>
           </TooltipProvider>
         </LanguageProvider>
       </ThemeProvider>
