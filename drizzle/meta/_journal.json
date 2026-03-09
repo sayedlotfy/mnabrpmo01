@@ -50,6 +50,13 @@
       "when": 1773068303486,
       "tag": "0006_perpetual_korg",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1773074318994,
+      "tag": "0007_adorable_thanos",
+      "breakpoints": true
     }
   ]
 }

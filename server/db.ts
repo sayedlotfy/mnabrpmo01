@@ -12,6 +12,7 @@ import {
   expenses, InsertExpense,
   payments, InsertPayment,
   projectEvents, InsertProjectEvent,
+  projectPhases, InsertProjectPhase,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -474,4 +475,127 @@ export async function toggleProjectPause(
   // Return updated project
   const updated = await db.select().from(projects).where(eq(projects.id, projectId)).limit(1);
   return updated[0];
+}
+
+// ============ Project Phases ============
+export async function getProjectPhases(projectId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.select().from(projectPhases)
+    .where(eq(projectPhases.projectId, projectId))
+    .orderBy(projectPhases.sortOrder, projectPhases.id);
+}
+
+export async function createProjectPhase(data: InsertProjectPhase) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.insert(projectPhases).values(data);
+}
+
+export async function updateProjectPhase(id: number, data: Partial<InsertProjectPhase>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.update(projectPhases).set(data).where(eq(projectPhases.id, id));
+}
+
+export async function deleteProjectPhase(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.delete(projectPhases).where(eq(projectPhases.id, id));
+}
+
+// ============ App User Name Update ============
+export async function updateAppUserName(userId: number, name: string, nameEn?: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.update(appUsers).set({ name, nameEn: nameEn ?? null }).where(eq(appUsers.id, userId));
+}
+
+// ============ Transfer Project ============
+export async function transferProject(projectId: number, newAppUserId: number, newManagerName: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.update(projects)
+    .set({ appUserId: newAppUserId, manager: newManagerName })
+    .where(eq(projects.id, projectId));
+}
+
+// ============ Portfolio Claims & Debts ============
+/**
+ * Returns two lists for the Portfolio Manager:
+ * - claims: payments with status Pending or Due (need to be issued by finance)
+ * - debts: payments with status Claimed, Invoiced, or PaidPartial (issued but not fully paid)
+ */
+export async function getPortfolioClaimsAndDebts() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const allProjects = await db.select({
+    id: projects.id,
+    name: projects.name,
+    code: projects.code,
+    manager: projects.manager,
+    currency: projects.currency,
+  }).from(projects);
+
+  const allPayments = await db.select().from(payments);
+
+  const projectMap = new Map(allProjects.map(p => [p.id, p]));
+
+  // Claims: Pending or Due
+  const claims = allPayments
+    .filter(pay => pay.status === 'Pending' || pay.status === 'Due')
+    .map(pay => {
+      const proj = projectMap.get(pay.projectId);
+      return {
+        id: pay.id,
+        projectId: pay.projectId,
+        projectName: proj?.name ?? '',
+        projectCode: proj?.code ?? '',
+        manager: proj?.manager ?? '',
+        currency: proj?.currency ?? 'SAR',
+        title: pay.title,
+        type: pay.type,
+        amount: Number(pay.amount),
+        date: pay.date,
+        requirements: pay.requirements ?? '',
+        status: pay.status,
+      };
+    })
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  // Debts: Claimed, Invoiced, PaidPartial
+  const debts = allPayments
+    .filter(pay => pay.status === 'Claimed' || pay.status === 'Invoiced' || pay.status === 'PaidPartial')
+    .map(pay => {
+      const proj = projectMap.get(pay.projectId);
+      const invoicedAmount = Number(pay.amount);
+      const paidAmount = Number(pay.paidAmount || 0);
+      const outstanding = invoicedAmount - paidAmount;
+      return {
+        id: pay.id,
+        projectId: pay.projectId,
+        projectName: proj?.name ?? '',
+        projectCode: proj?.code ?? '',
+        manager: proj?.manager ?? '',
+        currency: proj?.currency ?? 'SAR',
+        title: pay.title,
+        type: pay.type,
+        invoicedAmount,
+        paidAmount,
+        outstanding,
+        date: pay.date,
+        requirements: pay.requirements ?? '',
+        status: pay.status,
+      };
+    })
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  // Totals
+  const totalClaims = claims.reduce((s, c) => s + c.amount, 0);
+  const totalDebts = debts.reduce((s, d) => s + d.outstanding, 0);
+  const totalInvoiced = debts.reduce((s, d) => s + d.invoicedAmount, 0);
+  const totalPaid = debts.reduce((s, d) => s + d.paidAmount, 0);
+
+  return { claims, debts, totalClaims, totalDebts, totalInvoiced, totalPaid };
 }

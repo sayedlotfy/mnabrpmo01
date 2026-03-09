@@ -77,6 +77,63 @@ export const appRouter = router({
         await db.deleteAppUser(input.userId);
         return { success: true };
       }),
+
+    updateName: publicProcedure
+      .input(z.object({
+        userId: z.number(),
+        name: z.string().min(1),
+        nameEn: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        await db.updateAppUserName(input.userId, input.name, input.nameEn);
+        return { success: true };
+      }),
+  }),
+
+  // ============ Project Phases ============
+  projectPhases: router({
+    list: publicProcedure
+      .input(z.object({ projectId: z.number() }))
+      .query(async ({ input }) => {
+        return await db.getProjectPhases(input.projectId);
+      }),
+
+    create: publicProcedure
+      .input(z.object({
+        projectId: z.number(),
+        name: z.string().min(1),
+        durationDays: z.number().min(0).default(0),
+        sortOrder: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        await db.createProjectPhase({
+          projectId: input.projectId,
+          name: input.name,
+          durationDays: input.durationDays,
+          sortOrder: input.sortOrder ?? 0,
+        });
+        return { success: true };
+      }),
+
+    update: publicProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().min(1).optional(),
+        durationDays: z.number().min(0).optional(),
+        sortOrder: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await db.updateProjectPhase(id, data);
+        return { success: true };
+      }),
+
+    delete: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.deleteProjectPhase(input.id);
+        return { success: true };
+      }),
   }),
 
   // ============ Projects ============
@@ -162,6 +219,17 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         return await db.deleteProject(input.id);
+      }),
+
+    transfer: publicProcedure
+      .input(z.object({
+        projectId: z.number(),
+        newAppUserId: z.number(),
+        newManagerName: z.string().min(1),
+      }))
+      .mutation(async ({ input }) => {
+        await db.transferProject(input.projectId, input.newAppUserId, input.newManagerName);
+        return { success: true };
       }),
   }),
 
@@ -414,6 +482,10 @@ export const appRouter = router({
   portfolio: router({
     summary: publicProcedure.query(async () => {
       return await db.getPortfolioSummary();
+    }),
+
+    claimsAndDebts: publicProcedure.query(async () => {
+      return await db.getPortfolioClaimsAndDebts();
     }),
   }),
 

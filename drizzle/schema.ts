@@ -180,6 +180,21 @@ export const projectEvents = mysqlTable("projectEvents", {
 export type ProjectEvent = typeof projectEvents.$inferSelect;
 export type InsertProjectEvent = typeof projectEvents.$inferInsert;
 
+/**
+ * Project Phases - custom phases defined per project by the project manager
+ * Each phase has a free-text name and duration in working days
+ */
+export const projectPhases = mysqlTable("projectPhases", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(), // free-text phase name
+  durationDays: int("durationDays").notNull().default(0), // working days
+  sortOrder: int("sortOrder").notNull().default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type ProjectPhase = typeof projectPhases.$inferSelect;
+export type InsertProjectPhase = typeof projectPhases.$inferInsert;
+
 // ---- Relations ----
 export const appUsersRelations = relations(appUsers, ({ many }) => ({
   projects: many(projects),
@@ -199,6 +214,11 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   expenses: many(expenses),
   payments: many(payments),
   projectEvents: many(projectEvents),
+  projectPhases: many(projectPhases),
+}));
+
+export const projectPhasesRelations = relations(projectPhases, ({ one }) => ({
+  project: one(projects, { fields: [projectPhases.projectId], references: [projects.id] }),
 }));
 
 export const projectEventsRelations = relations(projectEvents, ({ one }) => ({

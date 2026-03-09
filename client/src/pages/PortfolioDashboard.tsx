@@ -4,8 +4,13 @@ import { useAppUser } from "@/contexts/AppUserContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Loader2, TrendingUp, AlertTriangle, DollarSign, BarChart3,
-  FolderOpen, LogOut, Globe, Users, Plus, Trash2, KeyRound, Eye, EyeOff, X, Check, Bell
+  FolderOpen, LogOut, Globe, Users, Plus, Trash2, KeyRound, Eye, EyeOff, X, Check, Bell,
+  FileText, CreditCard, Download, FileSpreadsheet, Receipt, Banknote
 } from "lucide-react";
+import {
+  exportClaimsPDF, exportDebtsPDF, exportClaimsExcel, exportDebtsExcel,
+  type ClaimItem, type DebtItem
+} from "@/lib/exportPdf";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, PieChart, Pie, Cell
@@ -84,6 +89,37 @@ const T = {
     noEngineers: "لا يوجد مهندسون مسجلون",
     projects: "المشاريع",
     actions: "الإجراءات",
+    // Claims & Debts
+    claimsTab: "المطالبات",
+    debtsTab: "المديونيات",
+    claimsTitle: "المطالبات المستحقة الإصدار",
+    debtsTitle: "المديونيات - الفواتير غير المسددة",
+    claimsDesc: "دفعات مستحقة الإصدار من المالية (Pending / Due)",
+    debtsDesc: "فواتير صادرة ولم تُسدَّد بالكامل - لمتابعة فريق التحصيل",
+    totalClaims: "إجمالي المطالبات",
+    totalDebts: "إجمالي المديونية",
+    totalInvoiced: "إجمالي المفوتر",
+    totalPaid: "إجمالي المحصّل",
+    outstanding: "المتبقي",
+    projectCode: "الكود",
+    paymentTitle: "اسم الدفعة",
+    invoiceTitle: "اسم الفاتورة",
+    payType: "النوع",
+    payAmount: "القيمة",
+    invoicedAmount: "قيمة الفاتورة",
+    paidAmount: "المحصّل",
+    payDate: "التاريخ",
+    requirements: "المتطلبات",
+    noClaims: "لا توجد مطالبات مستحقة حالياً",
+    noDebts: "لا توجد مديونيات مسجلة حالياً",
+    exportPdf: "تصدير PDF",
+    exportExcel: "تصدير Excel",
+    viewProjectLink: "عرض المشروع",
+    statusPending: "معلق",
+    statusDue: "مستحق",
+    statusClaimed: "مطالب به",
+    statusInvoiced: "مفوتر",
+    statusPaidPartial: "مدفوع جزئياً",
   },
   en: {
     portfolioDashboard: "Portfolio Dashboard",
@@ -150,6 +186,37 @@ const T = {
     noEngineers: "No engineers registered",
     projects: "Projects",
     actions: "Actions",
+    // Claims & Debts
+    claimsTab: "Claims",
+    debtsTab: "Debts",
+    claimsTitle: "Claims Pending Finance Issuance",
+    debtsTitle: "Outstanding Debts - Unpaid Invoices",
+    claimsDesc: "Payments pending issuance by finance (Pending / Due)",
+    debtsDesc: "Issued invoices not fully paid - for collection team follow-up",
+    totalClaims: "Total Claims",
+    totalDebts: "Total Outstanding",
+    totalInvoiced: "Total Invoiced",
+    totalPaid: "Total Collected",
+    outstanding: "Outstanding",
+    projectCode: "Code",
+    paymentTitle: "Payment Title",
+    invoiceTitle: "Invoice Title",
+    payType: "Type",
+    payAmount: "Amount",
+    invoicedAmount: "Invoiced",
+    paidAmount: "Paid",
+    payDate: "Date",
+    requirements: "Requirements",
+    noClaims: "No pending claims at this time",
+    noDebts: "No outstanding debts recorded",
+    exportPdf: "Export PDF",
+    exportExcel: "Export Excel",
+    viewProjectLink: "View Project",
+    statusPending: "Pending",
+    statusDue: "Due",
+    statusClaimed: "Claimed",
+    statusInvoiced: "Invoiced",
+    statusPaidPartial: "Partial",
   },
 };
 
@@ -318,12 +385,14 @@ export default function PortfolioDashboard() {
   const [, navigate] = useLocation();
   const [managerFilter, setManagerFilter] = useState("all");
   const [cashFlowView, setCashFlowView] = useState<"monthly" | "quarterly">("monthly");
-  const [activeTab, setActiveTab] = useState<"dashboard" | "users">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "users" | "claims" | "debts">("dashboard");
   const [showAddUser, setShowAddUser] = useState(false);
   const [changePinUser, setChangePinUser] = useState<{ id: number; name: string } | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const [readAlerts, setReadAlerts] = useState<Set<number>>(new Set());
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [exportingExcel, setExportingExcel] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
 
   // Close notifications dropdown on outside click
@@ -339,6 +408,7 @@ export default function PortfolioDashboard() {
 
   const { data: summary, isLoading, refetch: refetchSummary } = trpc.portfolio.summary.useQuery();
   const { data: appUsers, refetch: refetchUsers } = trpc.appUsers.list.useQuery();
+  const { data: claimsDebts, isLoading: claimsLoading } = trpc.portfolio.claimsAndDebts.useQuery();
 
   const deleteUser = trpc.appUsers.delete.useMutation({
     onSuccess: () => {
@@ -564,20 +634,31 @@ export default function PortfolioDashboard() {
       </header>
 
       {/* Tabs */}
-      <div className="px-6" style={{ borderBottom: "1px solid var(--lg-border)", background: "var(--lg-glass-bg)", backdropFilter: "var(--lg-blur)", WebkitBackdropFilter: "var(--lg-blur)" }}>
-        <div className="flex gap-0 max-w-7xl mx-auto">
+      <div className="px-6 overflow-x-auto" style={{ borderBottom: "1px solid var(--lg-border)", background: "var(--lg-glass-bg)", backdropFilter: "var(--lg-blur)", WebkitBackdropFilter: "var(--lg-blur)" }}>
+        <div className="flex gap-0 max-w-7xl mx-auto min-w-max">
           {[
             { key: "dashboard", label: isAr ? "لوحة التحكم" : "Dashboard", icon: BarChart3 },
+            { key: "claims", label: t.claimsTab, icon: Receipt, badge: claimsDebts?.claims?.length },
+            { key: "debts", label: t.debtsTab, icon: Banknote, badge: claimsDebts?.debts?.length },
             { key: "users", label: t.userManagement, icon: Users },
           ].map(tab => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key as any)}
-              className="flex items-center gap-2 px-5 py-3.5 text-sm font-medium border-b-2 transition-all"
+              className="flex items-center gap-2 px-5 py-3.5 text-sm font-medium border-b-2 transition-all relative"
               style={{
                 borderBottomColor: activeTab === tab.key ? "var(--primary)" : "transparent",
                 color: activeTab === tab.key ? "var(--primary)" : "var(--muted-foreground)",
               }}>
               <tab.icon className="w-4 h-4" />
               {tab.label}
+              {(tab as any).badge > 0 && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
+                  style={{
+                    background: tab.key === "claims" ? "oklch(0.75 0.15 60 / 20%)" : "oklch(0.6 0.2 20 / 15%)",
+                    color: tab.key === "claims" ? "oklch(0.65 0.15 60)" : "oklch(0.6 0.2 20)",
+                  }}>
+                  {(tab as any).badge}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -906,6 +987,330 @@ export default function PortfolioDashboard() {
             )}
           </div>
         )}
+
+        {/* ===== CLAIMS TAB ===== */}
+        {activeTab === "claims" && (
+          <div className="space-y-5">
+            {/* Header */}
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: "var(--foreground)" }}>
+                  <Receipt className="w-5 h-5" style={{ color: "oklch(0.65 0.15 60)" }} />
+                  {t.claimsTitle}
+                </h2>
+                <p className="text-sm mt-1 opacity-60" style={{ color: "var(--foreground)" }}>{t.claimsDesc}</p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={async () => {
+                    if (!claimsDebts) return;
+                    setExportingPdf(true);
+                    try { await exportClaimsPDF(claimsDebts.claims as ClaimItem[], { totalClaims: claimsDebts.totalClaims }, lang); }
+                    finally { setExportingPdf(false); }
+                  }}
+                  disabled={exportingPdf || !claimsDebts?.claims?.length}
+                  className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl font-medium transition-all disabled:opacity-40"
+                  style={{ background: "oklch(0.55 0.18 260 / 12%)", border: "1px solid oklch(0.55 0.18 260 / 25%)", color: "oklch(0.55 0.18 260)" }}>
+                  {exportingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
+                  {t.exportPdf}
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!claimsDebts) return;
+                    setExportingExcel(true);
+                    try { await exportClaimsExcel(claimsDebts.claims as ClaimItem[], { totalClaims: claimsDebts.totalClaims }, lang); }
+                    finally { setExportingExcel(false); }
+                  }}
+                  disabled={exportingExcel || !claimsDebts?.claims?.length}
+                  className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl font-medium transition-all disabled:opacity-40"
+                  style={{ background: "oklch(0.55 0.18 145 / 12%)", border: "1px solid oklch(0.55 0.18 145 / 25%)", color: "oklch(0.55 0.18 145)" }}>
+                  {exportingExcel ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5" />}
+                  {t.exportExcel}
+                </button>
+              </div>
+            </div>
+
+            {/* KPI Summary */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {[
+                { label: t.totalClaims, value: fmt(claimsDebts?.totalClaims || 0) + " " + t.currency, icon: DollarSign, color: "oklch(0.65 0.15 60)" },
+                { label: isAr ? "عدد المطالبات" : "Claims Count", value: String(claimsDebts?.claims?.length || 0), icon: FileText, color: "oklch(0.55 0.18 260)" },
+                { label: isAr ? "مطالبات مستحقة (Due)" : "Due Claims", value: String((claimsDebts?.claims || []).filter((c: any) => c.status === 'Due').length), icon: AlertTriangle, color: "oklch(0.6 0.2 20)" },
+              ].map((kpi, i) => (
+                <div key={i} className="lg-card p-4">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-2" style={{ background: `${kpi.color}20` }}>
+                    <kpi.icon className="w-4 h-4" style={{ color: kpi.color }} />
+                  </div>
+                  <p className="text-2xl font-bold" style={{ color: "var(--foreground)" }}>{kpi.value}</p>
+                  <p className="text-xs opacity-50 mt-0.5">{kpi.label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Claims Table */}
+            <div className="lg-card overflow-hidden">
+              <div className="overflow-x-auto">
+                {claimsLoading ? (
+                  <div className="p-12 flex items-center justify-center">
+                    <Loader2 className="w-6 h-6 animate-spin" style={{ color: "var(--primary)" }} />
+                  </div>
+                ) : !claimsDebts?.claims?.length ? (
+                  <div className="p-12 text-center">
+                    <Receipt className="w-12 h-12 opacity-20 mx-auto mb-3" />
+                    <p className="opacity-50 text-sm">{t.noClaims}</p>
+                  </div>
+                ) : (
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr style={{ background: "var(--lg-glass-bg)", borderBottom: "1px solid var(--lg-border)" }}>
+                        {[t.projectName, t.projectCode, t.manager, t.paymentTitle, t.payType, t.payAmount, t.status, t.payDate, t.requirements].map((h, i) => (
+                          <th key={i} className="px-4 py-3 text-xs font-semibold text-start opacity-60" style={{ color: "var(--foreground)" }}>{h}</th>
+                        ))}
+                        <th className="px-4 py-3 text-xs font-semibold text-start opacity-60" style={{ color: "var(--foreground)" }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(claimsDebts.claims as ClaimItem[]).map((c, i) => {
+                        const statusColors: Record<string, string> = {
+                          Pending: "oklch(0.65 0.15 60)",
+                          Due: "oklch(0.6 0.2 20)",
+                        };
+                        const statusLabels: Record<string, string> = {
+                          Pending: t.statusPending,
+                          Due: t.statusDue,
+                        };
+                        return (
+                          <tr key={c.id}
+                            style={{ borderBottom: "1px solid var(--lg-border)" }}
+                            onMouseEnter={e => (e.currentTarget.style.background = "oklch(0.5 0.01 260 / 4%)")}
+                            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+                            <td className="px-4 py-3 font-medium" style={{ color: "var(--foreground)" }}>{c.projectName}</td>
+                            <td className="px-4 py-3 text-xs opacity-60" style={{ color: "var(--foreground)" }}>{c.projectCode}</td>
+                            <td className="px-4 py-3 text-xs opacity-70" style={{ color: "var(--foreground)" }}>{c.manager || "—"}</td>
+                            <td className="px-4 py-3" style={{ color: "var(--foreground)" }}>{c.title}</td>
+                            <td className="px-4 py-3">
+                              <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "oklch(0.55 0.18 260 / 12%)", color: "oklch(0.55 0.18 260)" }}>{c.type}</span>
+                            </td>
+                            <td className="px-4 py-3 font-semibold tabular-nums" style={{ color: "var(--foreground)" }}>
+                              {c.amount.toLocaleString("en-US")} {c.currency}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                                style={{ background: `${statusColors[c.status] || "oklch(0.5 0.01 260)"}15`, color: statusColors[c.status] || "var(--foreground)" }}>
+                                {statusLabels[c.status] || c.status}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-xs tabular-nums opacity-70" style={{ color: "var(--foreground)" }}>{c.date}</td>
+                            <td className="px-4 py-3 text-xs opacity-50 max-w-[150px] truncate" style={{ color: "var(--foreground)" }}>{c.requirements || "—"}</td>
+                            <td className="px-4 py-3">
+                              <button onClick={() => navigate(`/project/${c.projectId}`)}
+                                className="text-xs font-medium opacity-60 hover:opacity-100 whitespace-nowrap transition-opacity"
+                                style={{ color: "var(--primary)" }}>
+                                {t.viewProjectLink} →
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr style={{ background: "oklch(0.75 0.15 60 / 8%)", borderTop: "2px solid oklch(0.75 0.15 60 / 20%)" }}>
+                        <td colSpan={5} className="px-4 py-3 font-bold text-sm" style={{ color: "oklch(0.65 0.15 60)" }}>
+                          {isAr ? "الإجمالي" : "TOTAL"}
+                        </td>
+                        <td className="px-4 py-3 font-bold tabular-nums" style={{ color: "oklch(0.65 0.15 60)" }}>
+                          {(claimsDebts.totalClaims).toLocaleString("en-US")} {isAr ? "ر.س" : "SAR"}
+                        </td>
+                        <td colSpan={4}></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== DEBTS TAB ===== */}
+        {activeTab === "debts" && (
+          <div className="space-y-5">
+            {/* Header */}
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: "var(--foreground)" }}>
+                  <Banknote className="w-5 h-5" style={{ color: "oklch(0.6 0.2 20)" }} />
+                  {t.debtsTitle}
+                </h2>
+                <p className="text-sm mt-1 opacity-60" style={{ color: "var(--foreground)" }}>{t.debtsDesc}</p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={async () => {
+                    if (!claimsDebts) return;
+                    setExportingPdf(true);
+                    try {
+                      await exportDebtsPDF(
+                        claimsDebts.debts as DebtItem[],
+                        { totalDebts: claimsDebts.totalDebts, totalInvoiced: claimsDebts.totalInvoiced, totalPaid: claimsDebts.totalPaid },
+                        lang
+                      );
+                    } finally { setExportingPdf(false); }
+                  }}
+                  disabled={exportingPdf || !claimsDebts?.debts?.length}
+                  className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl font-medium transition-all disabled:opacity-40"
+                  style={{ background: "oklch(0.55 0.18 260 / 12%)", border: "1px solid oklch(0.55 0.18 260 / 25%)", color: "oklch(0.55 0.18 260)" }}>
+                  {exportingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
+                  {t.exportPdf}
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!claimsDebts) return;
+                    setExportingExcel(true);
+                    try {
+                      await exportDebtsExcel(
+                        claimsDebts.debts as DebtItem[],
+                        { totalDebts: claimsDebts.totalDebts, totalInvoiced: claimsDebts.totalInvoiced, totalPaid: claimsDebts.totalPaid },
+                        lang
+                      );
+                    } finally { setExportingExcel(false); }
+                  }}
+                  disabled={exportingExcel || !claimsDebts?.debts?.length}
+                  className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl font-medium transition-all disabled:opacity-40"
+                  style={{ background: "oklch(0.55 0.18 145 / 12%)", border: "1px solid oklch(0.55 0.18 145 / 25%)", color: "oklch(0.55 0.18 145)" }}>
+                  {exportingExcel ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5" />}
+                  {t.exportExcel}
+                </button>
+              </div>
+            </div>
+
+            {/* KPI Summary */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: t.totalInvoiced, value: fmt(claimsDebts?.totalInvoiced || 0) + " " + t.currency, icon: Receipt, color: "oklch(0.55 0.18 260)" },
+                { label: t.totalPaid, value: fmt(claimsDebts?.totalPaid || 0) + " " + t.currency, icon: TrendingUp, color: "oklch(0.55 0.18 145)" },
+                { label: t.totalDebts, value: fmt(claimsDebts?.totalDebts || 0) + " " + t.currency, icon: AlertTriangle, color: "oklch(0.6 0.2 20)" },
+                { label: isAr ? "عدد الفواتير" : "Invoice Count", value: String(claimsDebts?.debts?.length || 0), icon: FileText, color: "oklch(0.65 0.15 60)" },
+              ].map((kpi, i) => (
+                <div key={i} className="lg-card p-4">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-2" style={{ background: `${kpi.color}20` }}>
+                    <kpi.icon className="w-4 h-4" style={{ color: kpi.color }} />
+                  </div>
+                  <p className="text-2xl font-bold" style={{ color: i === 2 ? "oklch(0.6 0.2 20)" : "var(--foreground)" }}>{kpi.value}</p>
+                  <p className="text-xs opacity-50 mt-0.5">{kpi.label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Debts Table */}
+            <div className="lg-card overflow-hidden">
+              <div className="overflow-x-auto">
+                {claimsLoading ? (
+                  <div className="p-12 flex items-center justify-center">
+                    <Loader2 className="w-6 h-6 animate-spin" style={{ color: "var(--primary)" }} />
+                  </div>
+                ) : !claimsDebts?.debts?.length ? (
+                  <div className="p-12 text-center">
+                    <Banknote className="w-12 h-12 opacity-20 mx-auto mb-3" />
+                    <p className="opacity-50 text-sm">{t.noDebts}</p>
+                  </div>
+                ) : (
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr style={{ background: "var(--lg-glass-bg)", borderBottom: "1px solid var(--lg-border)" }}>
+                        {[t.projectName, t.projectCode, t.manager, t.invoiceTitle, t.payType, t.invoicedAmount, t.paidAmount, t.outstanding, t.status, t.payDate].map((h, i) => (
+                          <th key={i} className="px-4 py-3 text-xs font-semibold text-start opacity-60" style={{ color: "var(--foreground)" }}>{h}</th>
+                        ))}
+                        <th className="px-4 py-3"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(claimsDebts.debts as DebtItem[]).map((d, i) => {
+                        const statusColors: Record<string, string> = {
+                          Claimed: "oklch(0.65 0.15 60)",
+                          Invoiced: "oklch(0.6 0.2 20)",
+                          PaidPartial: "oklch(0.55 0.18 260)",
+                        };
+                        const statusLabels: Record<string, string> = {
+                          Claimed: t.statusClaimed,
+                          Invoiced: t.statusInvoiced,
+                          PaidPartial: t.statusPaidPartial,
+                        };
+                        const collectionRate = d.invoicedAmount > 0 ? (d.paidAmount / d.invoicedAmount) * 100 : 0;
+                        return (
+                          <tr key={d.id}
+                            style={{ borderBottom: "1px solid var(--lg-border)" }}
+                            onMouseEnter={e => (e.currentTarget.style.background = "oklch(0.5 0.01 260 / 4%)")}
+                            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+                            <td className="px-4 py-3 font-medium" style={{ color: "var(--foreground)" }}>{d.projectName}</td>
+                            <td className="px-4 py-3 text-xs opacity-60" style={{ color: "var(--foreground)" }}>{d.projectCode}</td>
+                            <td className="px-4 py-3 text-xs opacity-70" style={{ color: "var(--foreground)" }}>{d.manager || "—"}</td>
+                            <td className="px-4 py-3" style={{ color: "var(--foreground)" }}>{d.title}</td>
+                            <td className="px-4 py-3">
+                              <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "oklch(0.55 0.18 260 / 12%)", color: "oklch(0.55 0.18 260)" }}>{d.type}</span>
+                            </td>
+                            <td className="px-4 py-3 tabular-nums" style={{ color: "var(--foreground)" }}>
+                              {d.invoicedAmount.toLocaleString("en-US")} {d.currency}
+                            </td>
+                            <td className="px-4 py-3 tabular-nums" style={{ color: "oklch(0.55 0.18 145)" }}>
+                              {d.paidAmount.toLocaleString("en-US")} {d.currency}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div>
+                                <span className="font-semibold tabular-nums" style={{ color: d.outstanding > 0 ? "oklch(0.6 0.2 20)" : "oklch(0.55 0.18 145)" }}>
+                                  {d.outstanding.toLocaleString("en-US")} {d.currency}
+                                </span>
+                                {d.invoicedAmount > 0 && (
+                                  <div className="flex items-center gap-1 mt-1">
+                                    <div className="flex-1 rounded-full h-1" style={{ background: "oklch(0.5 0.01 260 / 15%)", minWidth: "50px" }}>
+                                      <div className="h-1 rounded-full" style={{ width: `${Math.min(100, collectionRate)}%`, background: "oklch(0.55 0.18 145)" }} />
+                                    </div>
+                                    <span className="text-[10px] opacity-50 tabular-nums">{collectionRate.toFixed(0)}%</span>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                                style={{ background: `${statusColors[d.status] || "oklch(0.5 0.01 260)"}15`, color: statusColors[d.status] || "var(--foreground)" }}>
+                                {statusLabels[d.status] || d.status}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-xs tabular-nums opacity-70" style={{ color: "var(--foreground)" }}>{d.date}</td>
+                            <td className="px-4 py-3">
+                              <button onClick={() => navigate(`/project/${d.projectId}`)}
+                                className="text-xs font-medium opacity-60 hover:opacity-100 whitespace-nowrap transition-opacity"
+                                style={{ color: "var(--primary)" }}>
+                                {t.viewProjectLink} →
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr style={{ background: "oklch(0.6 0.2 20 / 8%)", borderTop: "2px solid oklch(0.6 0.2 20 / 20%)" }}>
+                        <td colSpan={5} className="px-4 py-3 font-bold text-sm" style={{ color: "oklch(0.6 0.2 20)" }}>
+                          {isAr ? "الإجمالي" : "TOTAL"}
+                        </td>
+                        <td className="px-4 py-3 font-bold tabular-nums" style={{ color: "var(--foreground)" }}>
+                          {(claimsDebts.totalInvoiced).toLocaleString("en-US")} {isAr ? "ر.س" : "SAR"}
+                        </td>
+                        <td className="px-4 py-3 font-bold tabular-nums" style={{ color: "oklch(0.55 0.18 145)" }}>
+                          {(claimsDebts.totalPaid).toLocaleString("en-US")} {isAr ? "ر.س" : "SAR"}
+                        </td>
+                        <td className="px-4 py-3 font-bold tabular-nums" style={{ color: "oklch(0.6 0.2 20)" }}>
+                          {(claimsDebts.totalDebts).toLocaleString("en-US")} {isAr ? "ر.س" : "SAR"}
+                        </td>
+                        <td colSpan={3}></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );

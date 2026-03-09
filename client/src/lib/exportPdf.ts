@@ -398,3 +398,468 @@ export async function exportProjectPDF(data: ProjectReportData) {
   const fileName = `${data.projectCode}_Report_${new Date().toISOString().split("T")[0]}.pdf`;
   doc.save(fileName);
 }
+
+// ============================================================
+// Claims & Debts Export Types
+// ============================================================
+export interface ClaimItem {
+  id: number;
+  projectId: number;
+  projectName: string;
+  projectCode: string;
+  manager: string;
+  currency: string;
+  title: string;
+  type: string;
+  amount: number;
+  date: string;
+  requirements: string;
+  status: string;
+}
+
+export interface DebtItem {
+  id: number;
+  projectId: number;
+  projectName: string;
+  projectCode: string;
+  manager: string;
+  currency: string;
+  title: string;
+  type: string;
+  invoicedAmount: number;
+  paidAmount: number;
+  outstanding: number;
+  date: string;
+  requirements: string;
+  status: string;
+}
+
+// ============================================================
+// Export Claims PDF
+// ============================================================
+export async function exportClaimsPDF(
+  claims: ClaimItem[],
+  totals: { totalClaims: number },
+  lang: "ar" | "en"
+) {
+  const isAr = lang === "ar";
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 14;
+  let y = margin;
+
+  const fontBase64 = await loadAmiriFont();
+  if (fontBase64) {
+    doc.addFileToVFS("Amiri-Regular.ttf", fontBase64);
+    doc.addFont("Amiri-Regular.ttf", "Amiri", "normal");
+    doc.addFont("Amiri-Regular.ttf", "Amiri", "bold");
+  }
+  const arabicFont = fontBase64 ? "Amiri" : "helvetica";
+
+  const checkPage = (needed = 10) => {
+    if (y + needed > pageH - 16) { doc.addPage(); y = margin; }
+  };
+
+  // Header
+  doc.setFillColor(15, 23, 42);
+  doc.rect(0, 0, pageW, 28, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(13);
+  doc.setFont(arabicFont, "normal");
+  if (isAr) {
+    doc.text(prepareArabicText("المنابر للاستشارات الهندسية"), pageW - margin, 10, { align: "right" });
+    doc.setFontSize(9);
+    doc.setTextColor(148, 163, 184);
+    doc.text(prepareArabicText(`كشف المطالبات المستحقة الإصدار | ${new Date().toLocaleDateString("ar-SA")}`), pageW - margin, 18, { align: "right" });
+  } else {
+    doc.text("Al Mnabr Engineering Consultants", margin, 10);
+    doc.setFontSize(9);
+    doc.setTextColor(148, 163, 184);
+    doc.text(`Claims Pending Finance Issuance | ${new Date().toLocaleDateString("en-US")}`, margin, 18);
+  }
+  doc.setDrawColor(59, 130, 246);
+  doc.setLineWidth(1.5);
+  doc.line(0, 28, pageW, 28);
+  y = 34;
+
+  // Summary KPI band
+  doc.setFillColor(239, 246, 255);
+  doc.rect(margin, y, pageW - 2 * margin, 14, "F");
+  doc.setFontSize(8);
+  doc.setFont(arabicFont, "normal");
+  doc.setTextColor(30, 64, 175);
+  const totalLabel = isAr ? `إجمالي المطالبات: ${fmtAr(totals.totalClaims)} | عدد المطالبات: ${claims.length}` : `Total Claims: ${fmt(totals.totalClaims)} | Count: ${claims.length}`;
+  if (isAr) {
+    doc.text(prepareArabicText(totalLabel), pageW - margin - 4, y + 9, { align: "right" });
+  } else {
+    doc.text(totalLabel, margin + 4, y + 9);
+  }
+  y += 18;
+
+  // Table header
+  const cols = isAr
+    ? [
+        { label: "اسم المشروع", w: 55 },
+        { label: "الكود", w: 28 },
+        { label: "المدير", w: 35 },
+        { label: "اسم الدفعة", w: 55 },
+        { label: "النوع", w: 22 },
+        { label: "القيمة", w: 32 },
+        { label: "الحالة", w: 25 },
+        { label: "التاريخ", w: 28 },
+      ]
+    : [
+        { label: "Project Name", w: 55 },
+        { label: "Code", w: 28 },
+        { label: "Manager", w: 35 },
+        { label: "Payment Title", w: 55 },
+        { label: "Type", w: 22 },
+        { label: "Amount", w: 32 },
+        { label: "Status", w: 25 },
+        { label: "Date", w: 28 },
+      ];
+
+  doc.setFillColor(30, 41, 59);
+  doc.rect(margin, y, pageW - 2 * margin, 9, "F");
+  let cx = margin + 2;
+  cols.forEach(col => {
+    doc.setFontSize(7.5);
+    doc.setFont(arabicFont, "normal");
+    doc.setTextColor(255, 255, 255);
+    doc.text(isAr ? prepareArabicText(col.label) : col.label, cx, y + 6);
+    cx += col.w;
+  });
+  y += 10;
+
+  claims.forEach((c, i) => {
+    checkPage(8);
+    if (i % 2 === 0) { doc.setFillColor(248, 250, 252); doc.rect(margin, y, pageW - 2 * margin, 7.5, "F"); }
+    cx = margin + 2;
+    const statusColor: [number, number, number] = c.status === "Due" ? [220, 38, 38] : [100, 116, 139];
+    const rowData = [
+      c.projectName.substring(0, 24),
+      c.projectCode,
+      (c.manager || "—").substring(0, 16),
+      c.title.substring(0, 24),
+      c.type,
+      fmtAr(c.amount),
+      c.status,
+      c.date,
+    ];
+    rowData.forEach((val, vi) => {
+      doc.setFontSize(7);
+      doc.setFont(arabicFont, "normal");
+      if (vi === 6) doc.setTextColor(...statusColor);
+      else doc.setTextColor(30, 41, 59);
+      const displayVal = isAr && vi < 4 ? prepareArabicText(val) : val;
+      doc.text(displayVal, cx, y + 5.5);
+      cx += cols[vi].w;
+    });
+    y += 7.5;
+  });
+
+  // Total row
+  doc.setFillColor(219, 234, 254);
+  doc.rect(margin, y, pageW - 2 * margin, 9, "F");
+  doc.setFontSize(8.5);
+  doc.setFont(arabicFont, "normal");
+  doc.setTextColor(30, 64, 175);
+  if (isAr) {
+    doc.text(prepareArabicText("الإجمالي"), pageW - margin - 4, y + 6.5, { align: "right" });
+    doc.text(fmtAr(totals.totalClaims), margin + cols[0].w + cols[1].w + cols[2].w + cols[3].w + cols[4].w + 2, y + 6.5);
+  } else {
+    doc.text("TOTAL", margin + 2, y + 6.5);
+    doc.text(fmt(totals.totalClaims), margin + cols[0].w + cols[1].w + cols[2].w + cols[3].w + cols[4].w + 2, y + 6.5);
+  }
+
+  // Footer
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFillColor(15, 23, 42);
+    doc.rect(0, pageH - 10, pageW, 10, "F");
+    doc.setFontSize(6.5);
+    doc.setFont(arabicFont, "normal");
+    doc.setTextColor(148, 163, 184);
+    doc.text("Al Mnabr Engineering Consultants · Design PMO · Confidential", margin, pageH - 3.5);
+    doc.text(`${isAr ? "صفحة" : "Page"} ${i} ${isAr ? "من" : "of"} ${totalPages}`, pageW - margin, pageH - 3.5, { align: "right" });
+  }
+
+  doc.save(`Claims_${new Date().toISOString().split("T")[0]}.pdf`);
+}
+
+// ============================================================
+// Export Debts PDF
+// ============================================================
+export async function exportDebtsPDF(
+  debts: DebtItem[],
+  totals: { totalDebts: number; totalInvoiced: number; totalPaid: number },
+  lang: "ar" | "en"
+) {
+  const isAr = lang === "ar";
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 14;
+  let y = margin;
+
+  const fontBase64 = await loadAmiriFont();
+  if (fontBase64) {
+    doc.addFileToVFS("Amiri-Regular.ttf", fontBase64);
+    doc.addFont("Amiri-Regular.ttf", "Amiri", "normal");
+    doc.addFont("Amiri-Regular.ttf", "Amiri", "bold");
+  }
+  const arabicFont = fontBase64 ? "Amiri" : "helvetica";
+
+  const checkPage = (needed = 10) => {
+    if (y + needed > pageH - 16) { doc.addPage(); y = margin; }
+  };
+
+  // Header
+  doc.setFillColor(15, 23, 42);
+  doc.rect(0, 0, pageW, 28, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(13);
+  doc.setFont(arabicFont, "normal");
+  if (isAr) {
+    doc.text(prepareArabicText("المنابر للاستشارات الهندسية"), pageW - margin, 10, { align: "right" });
+    doc.setFontSize(9);
+    doc.setTextColor(148, 163, 184);
+    doc.text(prepareArabicText(`كشف المديونيات - الفواتير غير المسددة | ${new Date().toLocaleDateString("ar-SA")}`), pageW - margin, 18, { align: "right" });
+  } else {
+    doc.text("Al Mnabr Engineering Consultants", margin, 10);
+    doc.setFontSize(9);
+    doc.setTextColor(148, 163, 184);
+    doc.text(`Outstanding Debts - Unpaid Invoices | ${new Date().toLocaleDateString("en-US")}`, margin, 18);
+  }
+  doc.setDrawColor(239, 68, 68);
+  doc.setLineWidth(1.5);
+  doc.line(0, 28, pageW, 28);
+  y = 34;
+
+  // Summary KPI band - 3 KPIs
+  doc.setFillColor(254, 242, 242);
+  doc.rect(margin, y, pageW - 2 * margin, 16, "F");
+  const kpiW = (pageW - 2 * margin) / 3;
+  const kpiData = isAr
+    ? [
+        { label: "إجمالي المفوتر", value: fmtAr(totals.totalInvoiced), color: [30, 41, 59] as [number, number, number] },
+        { label: "إجمالي المحصّل", value: fmtAr(totals.totalPaid), color: [5, 150, 105] as [number, number, number] },
+        { label: "المتبقي (المديونية)", value: fmtAr(totals.totalDebts), color: [220, 38, 38] as [number, number, number] },
+      ]
+    : [
+        { label: "Total Invoiced", value: fmt(totals.totalInvoiced), color: [30, 41, 59] as [number, number, number] },
+        { label: "Total Collected", value: fmt(totals.totalPaid), color: [5, 150, 105] as [number, number, number] },
+        { label: "Outstanding", value: fmt(totals.totalDebts), color: [220, 38, 38] as [number, number, number] },
+      ];
+  kpiData.forEach((kpi, i) => {
+    const kx = margin + i * kpiW;
+    doc.setFontSize(7);
+    doc.setFont(arabicFont, "normal");
+    doc.setTextColor(100, 116, 139);
+    if (isAr) {
+      doc.text(prepareArabicText(kpi.label), kx + kpiW - 4, y + 6, { align: "right" });
+    } else {
+      doc.text(kpi.label, kx + 4, y + 6);
+    }
+    doc.setFontSize(10);
+    doc.setTextColor(...kpi.color);
+    if (isAr) {
+      doc.text(kpi.value, kx + kpiW - 4, y + 13, { align: "right" });
+    } else {
+      doc.text(kpi.value, kx + 4, y + 13);
+    }
+  });
+  y += 20;
+
+  // Table header
+  const cols = isAr
+    ? [
+        { label: "اسم المشروع", w: 48 },
+        { label: "الكود", w: 25 },
+        { label: "المدير", w: 32 },
+        { label: "اسم الفاتورة", w: 48 },
+        { label: "النوع", w: 20 },
+        { label: "قيمة الفاتورة", w: 32 },
+        { label: "المحصّل", w: 30 },
+        { label: "المتبقي", w: 30 },
+        { label: "الحالة", w: 22 },
+        { label: "التاريخ", w: 25 },
+      ]
+    : [
+        { label: "Project Name", w: 48 },
+        { label: "Code", w: 25 },
+        { label: "Manager", w: 32 },
+        { label: "Invoice Title", w: 48 },
+        { label: "Type", w: 20 },
+        { label: "Invoiced", w: 32 },
+        { label: "Paid", w: 30 },
+        { label: "Outstanding", w: 30 },
+        { label: "Status", w: 22 },
+        { label: "Date", w: 25 },
+      ];
+
+  doc.setFillColor(30, 41, 59);
+  doc.rect(margin, y, pageW - 2 * margin, 9, "F");
+  let cx = margin + 2;
+  cols.forEach(col => {
+    doc.setFontSize(7);
+    doc.setFont(arabicFont, "normal");
+    doc.setTextColor(255, 255, 255);
+    doc.text(isAr ? prepareArabicText(col.label) : col.label, cx, y + 6);
+    cx += col.w;
+  });
+  y += 10;
+
+  debts.forEach((d, i) => {
+    checkPage(8);
+    if (i % 2 === 0) { doc.setFillColor(248, 250, 252); doc.rect(margin, y, pageW - 2 * margin, 7.5, "F"); }
+    cx = margin + 2;
+    const statusColor: [number, number, number] = d.status === "Invoiced" ? [220, 38, 38] : d.status === "Claimed" ? [245, 158, 11] : [59, 130, 246];
+    const rowData = [
+      d.projectName.substring(0, 22),
+      d.projectCode,
+      (d.manager || "—").substring(0, 14),
+      d.title.substring(0, 22),
+      d.type,
+      fmtAr(d.invoicedAmount),
+      fmtAr(d.paidAmount),
+      fmtAr(d.outstanding),
+      d.status,
+      d.date,
+    ];
+    rowData.forEach((val, vi) => {
+      doc.setFontSize(7);
+      doc.setFont(arabicFont, "normal");
+      if (vi === 8) doc.setTextColor(...statusColor);
+      else if (vi === 7) doc.setTextColor(220, 38, 38);
+      else doc.setTextColor(30, 41, 59);
+      const displayVal = isAr && vi < 4 ? prepareArabicText(val) : val;
+      doc.text(displayVal, cx, y + 5.5);
+      cx += cols[vi].w;
+    });
+    y += 7.5;
+  });
+
+  // Total row
+  doc.setFillColor(254, 226, 226);
+  doc.rect(margin, y, pageW - 2 * margin, 9, "F");
+  doc.setFontSize(8.5);
+  doc.setFont(arabicFont, "normal");
+  doc.setTextColor(185, 28, 28);
+  const baseX = margin + cols[0].w + cols[1].w + cols[2].w + cols[3].w + cols[4].w + 2;
+  if (isAr) {
+    doc.text(prepareArabicText("الإجمالي"), pageW - margin - 4, y + 6.5, { align: "right" });
+  } else {
+    doc.text("TOTAL", margin + 2, y + 6.5);
+  }
+  doc.setTextColor(30, 41, 59);
+  doc.text(fmtAr(totals.totalInvoiced), baseX, y + 6.5);
+  doc.setTextColor(5, 150, 105);
+  doc.text(fmtAr(totals.totalPaid), baseX + cols[5].w, y + 6.5);
+  doc.setTextColor(220, 38, 38);
+  doc.text(fmtAr(totals.totalDebts), baseX + cols[5].w + cols[6].w, y + 6.5);
+
+  // Footer
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFillColor(15, 23, 42);
+    doc.rect(0, pageH - 10, pageW, 10, "F");
+    doc.setFontSize(6.5);
+    doc.setFont(arabicFont, "normal");
+    doc.setTextColor(148, 163, 184);
+    doc.text("Al Mnabr Engineering Consultants · Design PMO · Confidential", margin, pageH - 3.5);
+    doc.text(`${isAr ? "صفحة" : "Page"} ${i} ${isAr ? "من" : "of"} ${totalPages}`, pageW - margin, pageH - 3.5, { align: "right" });
+  }
+
+  doc.save(`Debts_${new Date().toISOString().split("T")[0]}.pdf`);
+}
+
+// ============================================================
+// Export Claims Excel
+// ============================================================
+export async function exportClaimsExcel(claims: ClaimItem[], totals: { totalClaims: number }, lang: "ar" | "en") {
+  const isAr = lang === "ar";
+  const XLSX = await import("xlsx");
+
+  const headers = isAr
+    ? ["اسم المشروع", "الكود", "المدير", "اسم الدفعة", "النوع", "القيمة (ر.س)", "الحالة", "التاريخ", "المتطلبات"]
+    : ["Project Name", "Code", "Manager", "Payment Title", "Type", "Amount (SAR)", "Status", "Date", "Requirements"];
+
+  const rows = claims.map(c => [
+    c.projectName,
+    c.projectCode,
+    c.manager || "",
+    c.title,
+    c.type,
+    c.amount,
+    c.status,
+    c.date,
+    c.requirements || "",
+  ]);
+
+  // Total row
+  rows.push([
+    isAr ? "الإجمالي" : "TOTAL",
+    "", "", "", "",
+    totals.totalClaims,
+    "", "", "",
+  ]);
+
+  const wsData = [headers, ...rows];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+  // Column widths
+  ws["!cols"] = [{ wch: 30 }, { wch: 15 }, { wch: 20 }, { wch: 30 }, { wch: 12 }, { wch: 18 }, { wch: 14 }, { wch: 14 }, { wch: 30 }];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, isAr ? "المطالبات" : "Claims");
+  XLSX.writeFile(wb, `Claims_${new Date().toISOString().split("T")[0]}.xlsx`);
+}
+
+// ============================================================
+// Export Debts Excel
+// ============================================================
+export async function exportDebtsExcel(debts: DebtItem[], totals: { totalDebts: number; totalInvoiced: number; totalPaid: number }, lang: "ar" | "en") {
+  const isAr = lang === "ar";
+  const XLSX = await import("xlsx");
+
+  const headers = isAr
+    ? ["اسم المشروع", "الكود", "المدير", "اسم الفاتورة", "النوع", "قيمة الفاتورة", "المحصّل", "المتبقي", "الحالة", "التاريخ", "المتطلبات"]
+    : ["Project Name", "Code", "Manager", "Invoice Title", "Type", "Invoiced Amount", "Paid", "Outstanding", "Status", "Date", "Requirements"];
+
+  const rows = debts.map(d => [
+    d.projectName,
+    d.projectCode,
+    d.manager || "",
+    d.title,
+    d.type,
+    d.invoicedAmount,
+    d.paidAmount,
+    d.outstanding,
+    d.status,
+    d.date,
+    d.requirements || "",
+  ]);
+
+  // Total row
+  rows.push([
+    isAr ? "الإجمالي" : "TOTAL",
+    "", "", "", "",
+    totals.totalInvoiced,
+    totals.totalPaid,
+    totals.totalDebts,
+    "", "", "",
+  ]);
+
+  const wsData = [headers, ...rows];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+  ws["!cols"] = [{ wch: 30 }, { wch: 15 }, { wch: 20 }, { wch: 30 }, { wch: 12 }, { wch: 18 }, { wch: 16 }, { wch: 18 }, { wch: 14 }, { wch: 14 }, { wch: 30 }];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, isAr ? "المديونيات" : "Debts");
+  XLSX.writeFile(wb, `Debts_${new Date().toISOString().split("T")[0]}.xlsx`);
+}

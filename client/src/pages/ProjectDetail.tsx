@@ -92,6 +92,18 @@ export default function ProjectDetail() {
   const { data: paymentsList = [] } = trpc.payments.list.useQuery(
     { projectId }, { enabled: projectId > 0 }
   );
+  // ---- Project Phases ----
+  const { data: phasesList = [], refetch: refetchPhases } = trpc.projectPhases.list.useQuery(
+    { projectId }, { enabled: projectId > 0 }
+  );
+  const [newPhaseName, setNewPhaseName] = useState("");
+  const [newPhaseDays, setNewPhaseDays] = useState(0);
+  const [editingPhaseId, setEditingPhaseId] = useState<number | null>(null);
+  const [editingPhaseName, setEditingPhaseName] = useState("");
+  const [editingPhaseDays, setEditingPhaseDays] = useState(0);
+  const createPhase = trpc.projectPhases.create.useMutation({ onSuccess: () => { refetchPhases(); setNewPhaseName(""); setNewPhaseDays(0); } });
+  const updatePhase = trpc.projectPhases.update.useMutation({ onSuccess: () => { refetchPhases(); setEditingPhaseId(null); } });
+  const deletePhase = trpc.projectPhases.delete.useMutation({ onSuccess: () => refetchPhases() });
 
   // ---- Mutations ----
   const createStaff = trpc.staff.create.useMutation({ onSuccess: () => utils.staff.list.invalidate({ projectId }) });
@@ -972,6 +984,109 @@ export default function ProjectDetail() {
               </tbody>
             </table>
           </div>
+        </Card>
+
+        {/* Project Phases Card */}
+        <Card className="p-4">
+          <h3 className="font-bold mb-4 flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-muted-foreground" />
+            {lang === 'ar' ? 'مراحل المشروع' : 'Project Phases'}
+          </h3>
+          <p className="text-xs text-muted-foreground mb-4">
+            {lang === 'ar' ? 'أضف مراحل المشروع بأسماء مخصصة ومدة كل مرحلة بأيام العمل' : 'Add custom project phases with names and duration in working days'}
+          </p>
+          {/* Add new phase */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-2 items-end bg-muted p-3 rounded mb-4">
+            <div className="md:col-span-3">
+              <label className="text-xs font-bold text-muted-foreground">{lang === 'ar' ? 'اسم المرحلة' : 'Phase Name'}</label>
+              <input type="text" value={newPhaseName} onChange={e => setNewPhaseName(e.target.value)}
+                placeholder={lang === 'ar' ? 'مثال: التصميم الأولي، الرسومات التنفيذية...' : 'e.g. Concept Design, Working Drawings...'}
+                className="w-full text-sm p-2 border rounded" />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-muted-foreground">{lang === 'ar' ? 'المدة (أيام)' : 'Duration (days)'}</label>
+              <input type="number" min={0} value={newPhaseDays} onChange={e => setNewPhaseDays(Number(e.target.value))}
+                className="w-full text-sm p-2 border rounded" />
+            </div>
+            <Button onClick={() => {
+              if (!newPhaseName.trim()) return;
+              createPhase.mutate({ projectId, name: newPhaseName.trim(), durationDays: newPhaseDays, sortOrder: phasesList.length });
+            }} disabled={createPhase.isPending || !newPhaseName.trim()} className="h-9">
+              {createPhase.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              {lang === 'ar' ? 'إضافة' : 'Add'}
+            </Button>
+          </div>
+          {/* Phases list */}
+          {phasesList.length === 0 ? (
+            <p className="text-center text-muted-foreground text-sm py-6">{lang === 'ar' ? 'لا توجد مراحل بعد. أضف أول مرحلة أعلاه.' : 'No phases yet. Add the first phase above.'}</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted">
+                  <tr>
+                    <th className="p-2 text-start">#</th>
+                    <th className="p-2 text-start">{lang === 'ar' ? 'اسم المرحلة' : 'Phase Name'}</th>
+                    <th className="p-2 text-start">{lang === 'ar' ? 'المدة (أيام عمل)' : 'Duration (working days)'}</th>
+                    <th className="p-2 text-end">{lang === 'ar' ? 'إجراء' : 'Action'}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {phasesList.map((ph, idx) => (
+                    <tr key={ph.id}>
+                      <td className="p-2 text-muted-foreground">{idx + 1}</td>
+                      <td className="p-2">
+                        {editingPhaseId === ph.id ? (
+                          <input type="text" value={editingPhaseName} onChange={e => setEditingPhaseName(e.target.value)}
+                            className="w-full text-sm p-1 border rounded" />
+                        ) : (
+                          <span className="font-medium">{ph.name}</span>
+                        )}
+                      </td>
+                      <td className="p-2">
+                        {editingPhaseId === ph.id ? (
+                          <input type="number" min={0} value={editingPhaseDays} onChange={e => setEditingPhaseDays(Number(e.target.value))}
+                            className="w-24 text-sm p-1 border rounded" />
+                        ) : (
+                          <span>{ph.durationDays} {lang === 'ar' ? 'يوم' : 'days'}</span>
+                        )}
+                      </td>
+                      <td className="p-2 text-end flex justify-end gap-2">
+                        {editingPhaseId === ph.id ? (
+                          <>
+                            <button onClick={() => updatePhase.mutate({ id: ph.id, name: editingPhaseName, durationDays: editingPhaseDays })}
+                              className="text-emerald-600 text-xs px-2 py-1 rounded border border-emerald-300 hover:bg-emerald-50">
+                              {lang === 'ar' ? 'حفظ' : 'Save'}
+                            </button>
+                            <button onClick={() => setEditingPhaseId(null)}
+                              className="text-muted-foreground text-xs px-2 py-1 rounded border hover:bg-muted">
+                              {lang === 'ar' ? 'إلغاء' : 'Cancel'}
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button onClick={() => { setEditingPhaseId(ph.id); setEditingPhaseName(ph.name); setEditingPhaseDays(ph.durationDays); }}
+                              className="text-blue-500 text-xs px-2 py-1 rounded border border-blue-200 hover:bg-blue-50">
+                              {lang === 'ar' ? 'تعديل' : 'Edit'}
+                            </button>
+                            <button onClick={() => deletePhase.mutate({ id: ph.id })} className="text-rose-400">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="bg-muted">
+                  <tr>
+                    <td colSpan={2} className="p-2 font-bold">{lang === 'ar' ? 'الإجمالي' : 'Total'}</td>
+                    <td className="p-2 font-bold">{phasesList.reduce((s, p) => s + p.durationDays, 0)} {lang === 'ar' ? 'يوم' : 'days'}</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
         </Card>
       </div>
     );
