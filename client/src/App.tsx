@@ -44,6 +44,17 @@ function ProtectedRouter() {
 }
 
 function App() {
+  // Apply saved theme on mount before first render
+  if (typeof window !== "undefined") {
+    const saved = localStorage.getItem("theme");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    if (saved === "dark" || (!saved && prefersDark)) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }
+
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light">

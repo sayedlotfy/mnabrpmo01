@@ -164,6 +164,22 @@ export const payments = mysqlTable("payments", {
 export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = typeof payments.$inferInsert;
 
+/**
+ * Project Events - log of pause/resume/start events with mandatory reason
+ * Used for the Timeline tab showing project duration history
+ */
+export const projectEvents = mysqlTable("projectEvents", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  eventType: mysqlEnum("eventType", ["start", "pause", "resume"]).notNull(),
+  eventDate: varchar("eventDate", { length: 10 }).notNull(), // YYYY-MM-DD
+  reason: text("reason").notNull(), // mandatory reason
+  recordedBy: varchar("recordedBy", { length: 255 }), // name of user who recorded
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type ProjectEvent = typeof projectEvents.$inferSelect;
+export type InsertProjectEvent = typeof projectEvents.$inferInsert;
+
 // ---- Relations ----
 export const appUsersRelations = relations(appUsers, ({ many }) => ({
   projects: many(projects),
@@ -182,6 +198,11 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   timeLogs: many(timeLogs),
   expenses: many(expenses),
   payments: many(payments),
+  projectEvents: many(projectEvents),
+}));
+
+export const projectEventsRelations = relations(projectEvents, ({ one }) => ({
+  project: one(projects, { fields: [projectEvents.projectId], references: [projects.id] }),
 }));
 
 export const staffRelations = relations(staff, ({ one, many }) => ({

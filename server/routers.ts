@@ -357,6 +357,37 @@ export const appRouter = router({
       }),
   }),
 
+  // ============ Project Events (Duration Log) ============
+  projectEvents: router({
+    list: publicProcedure
+      .input(z.object({ projectId: z.number() }))
+      .query(async ({ input }) => {
+        return await db.getProjectEvents(input.projectId);
+      }),
+
+    togglePause: publicProcedure
+      .input(z.object({
+        projectId: z.number(),
+        reason: z.string().min(5, "السبب مطلوب (5 أحرف على الأقل)"),
+        recordedBy: z.string().optional().default("مجهول"),
+        today: z.string(), // YYYY-MM-DD
+      }))
+      .mutation(async ({ input }) => {
+        return await db.toggleProjectPause(
+          input.projectId,
+          input.reason,
+          input.recordedBy,
+          input.today
+        );
+      }),
+
+    delete: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return await db.deleteProjectEvent(input.id);
+      }),
+  }),
+
   // ============ Portfolio (Portfolio Manager View) ============
   portfolio: router({
     summary: publicProcedure.query(async () => {

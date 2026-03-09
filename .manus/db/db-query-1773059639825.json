@@ -1,0 +1,50 @@
+{
+  "query": "SELECT id, name, role FROM appUsers ORDER BY id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3GFQbUAg4PvgXYh.92d5e419220b --database eFfuN9v8AVB9nn8xTmwtHX --execute SELECT id, name, role FROM appUsers ORDER BY id;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "السيد لطفي",
+      "role": "portfolio_manager"
+    },
+    {
+      "id": "2",
+      "name": "مهندس تجريبي",
+      "role": "project_manager"
+    },
+    {
+      "id": "30001",
+      "name": "وليد المبيض",
+      "role": "project_manager"
+    },
+    {
+      "id": "60001",
+      "name": "test",
+      "role": "project_manager"
+    },
+    {
+      "id": "60002",
+      "name": "محمود يوسف",
+      "role": "project_manager"
+    },
+    {
+      "id": "60003",
+      "name": "مصطفى صابر",
+      "role": "project_manager"
+    },
+    {
+      "id": "60004",
+      "name": "سعيد",
+      "role": "project_manager"
+    },
+    {
+      "id": "60005",
+      "name": "محمد الهودلي",
+      "role": "project_manager"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\trole\n1\tالسيد لطفي\tportfolio_manager\n2\tمهندس تجريبي\tproject_manager\n30001\tوليد المبيض\tproject_manager\n60001\ttest\tproject_manager\n60002\tمحمود يوسف\tproject_manager\n60003\tمصطفى صابر\tproject_manager\n60004\tسعيد\tproject_manager\n60005\tمحمد الهودلي\tproject_manager\n",
+  "stderr": "",
+  "execution_time_ms": 1503
+}

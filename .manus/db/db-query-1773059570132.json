@@ -1,0 +1,50 @@
+{
+  "query": "SELECT * FROM appUsers;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3GFQbUAg4PvgXYh.92d5e419220b --database eFfuN9v8AVB9nn8xTmwtHX --execute SELECT * FROM appUsers;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "سيد | مدير التصميم",
+      "nameEn": "Sayed | Design Director",
+      "role": "portfolio_manager",
+      "pinHash": "840cd8290200b5189c5e1961e7659b9e4835baad51947032aa2e8012718bdb76",
+      "isActive": "1",
+      "createdAt": "2026-03-09 09:23:21",
+      "updatedAt": "2026-03-09 09:23:21"
+    },
+    {
+      "id": "2",
+      "name": "مهندس تجريبي",
+      "nameEn": "Test Engineer",
+      "role": "project_manager",
+      "pinHash": "a0e0a394bb58e08a6c16bd597bfec052f3aed2319c93a933dbb81c95e57ae131",
+      "isActive": "1",
+      "createdAt": "2026-03-09 09:23:30",
+      "updatedAt": "2026-03-09 09:23:30"
+    },
+    {
+      "id": "30001",
+      "name": "وليد المبيض",
+      "nameEn": "Waleed Almobiedh",
+      "role": "project_manager",
+      "pinHash": "840cd8290200b5189c5e1961e7659b9e4835baad51947032aa2e8012718bdb76",
+      "isActive": "1",
+      "createdAt": "2026-03-09 11:36:58",
+      "updatedAt": "2026-03-09 11:36:58"
+    },
+    {
+      "id": "60001",
+      "name": "test",
+      "nameEn": "tst",
+      "role": "project_manager",
+      "pinHash": "840cd8290200b5189c5e1961e7659b9e4835baad51947032aa2e8012718bdb76",
+      "isActive": "1",
+      "createdAt": "2026-03-09 12:15:59",
+      "updatedAt": "2026-03-09 12:15:59"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tnameEn\trole\tpinHash\tisActive\tcreatedAt\tupdatedAt\n1\tسيد | مدير التصميم\tSayed | Design Director\tportfolio_manager\t840cd8290200b5189c5e1961e7659b9e4835baad51947032aa2e8012718bdb76\t1\t2026-03-09 09:23:21\t2026-03-09 09:23:21\n2\tمهندس تجريبي\tTest Engineer\tproject_manager\ta0e0a394bb58e08a6c16bd597bfec052f3aed2319c93a933dbb81c95e57ae131\t1\t2026-03-09 09:23:30\t2026-03-09 09:23:30\n30001\tوليد المبيض\tWaleed Almobiedh\tproject_manager\t840cd8290200b5189c5e1961e7659b9e4835baad51947032aa2e8012718bdb76\t1\t2026-03-09 11:36:58\t2026-03-09 11:36:58\n60001\ttest\ttst\tproject_manager\t840cd8290200b5189c5e1961e7659b9e4835baad51947032aa2e8012718bdb76\t1\t2026-03-09 12:15:59\t2026-03-09 12:15:59\n",
+  "stderr": "",
+  "execution_time_ms": 1520
+}

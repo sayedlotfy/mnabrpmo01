@@ -12,6 +12,8 @@ import {
 } from "recharts";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
+import ThemeToggle from "@/components/ThemeToggle";
+import LastUpdatedBanner from "@/components/LastUpdatedBanner";
 
 const LOGO_URL = "https://static-assets.manus.space/files/webdev/design-pmo/logo.png";
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"];
@@ -413,14 +415,18 @@ export default function PortfolioDashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      <div className="min-h-screen flex items-center justify-center"
+        style={{ background: "var(--lg-bg-gradient)", backgroundAttachment: "fixed" }}>
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "var(--primary)" }} />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50" dir={isAr ? "rtl" : "ltr"}>
+    <div className="min-h-screen" dir={isAr ? "rtl" : "ltr"}
+      style={{ background: "var(--lg-bg-gradient)", backgroundAttachment: "fixed" }}>
+      {/* Last updated banner */}
+      <LastUpdatedBanner />
       {/* Modals */}
       {showAddUser && (
         <AddUserModal lang={lang} onClose={() => setShowAddUser(false)} onSuccess={() => refetchUsers()} />
@@ -450,28 +456,32 @@ export default function PortfolioDashboard() {
       )}
 
       {/* Header */}
-      <header className="bg-slate-900 text-white px-6 py-3 flex items-center justify-between sticky top-0 z-40 shadow-lg">
+      <header className="lg-header sticky top-8 z-40 px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <img src={LOGO_URL} alt="Logo" className="h-9 w-9 object-contain"
+          <img src={LOGO_URL} alt="Logo" className="h-9 w-9 object-contain drop-shadow"
             onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
           <div>
-            <h1 className="font-bold text-sm leading-tight">
+            <h1 className="font-bold text-sm leading-tight" style={{ color: "var(--lg-header-text)" }}>
               {isAr ? "المنابر للاستشارات الهندسية" : "Al Mnabr Engineering Consultants"}
             </h1>
-            <p className="text-slate-400 text-xs">{t.portfolioDashboard}</p>
+            <p className="text-xs opacity-50" style={{ color: "var(--lg-header-text)" }}>{t.portfolioDashboard}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-amber-400 font-medium hidden sm:block">{currentUser?.name}</span>
+          <span className="text-xs font-medium hidden sm:block" style={{ color: "oklch(0.75 0.15 50)" }}>{currentUser?.name}</span>
 
           {/* Notifications Bell */}
           <div className="relative" ref={notifRef}>
             <button
               onClick={() => setShowNotifications(v => !v)}
-              className="relative flex items-center justify-center w-8 h-8 rounded-lg hover:bg-slate-700 transition-colors"
+              className="relative flex items-center justify-center w-8 h-8 rounded-xl transition-all"
+              style={{
+                background: showNotifications ? "oklch(1 0 0 / 20%)" : "oklch(1 0 0 / 8%)",
+                border: "1px solid oklch(1 0 0 / 15%)",
+              }}
               title={isAr ? "الإشعارات" : "Notifications"}
             >
-              <Bell className="w-4 h-4 text-slate-300" />
+              <Bell className="w-4 h-4" style={{ color: "var(--lg-header-text)" }} />
               {alerts.filter((_, i) => !readAlerts.has(i)).length > 0 && (
                 <span className="absolute -top-0.5 -end-0.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
                   {alerts.filter((_, i) => !readAlerts.has(i)).length}
@@ -481,55 +491,46 @@ export default function PortfolioDashboard() {
 
             {/* Dropdown */}
             {showNotifications && (
-              <div className={`absolute top-10 ${isAr ? "left-0" : "right-0"} w-80 bg-white rounded-xl shadow-2xl border border-slate-100 z-50 overflow-hidden`}>
-                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-                  <h3 className="font-semibold text-slate-800 text-sm flex items-center gap-2">
+              <div className={`absolute top-11 ${isAr ? "left-0" : "right-0"} w-80 z-50 overflow-hidden lg-dropdown`}>
+                <div className="flex items-center justify-between px-4 py-3"
+                  style={{ borderBottom: "1px solid var(--lg-border)" }}>
+                  <h3 className="font-semibold text-sm flex items-center gap-2" style={{ color: "var(--foreground)" }}>
                     <Bell className="w-4 h-4 text-amber-500" />
                     {isAr ? "الإشعارات" : "Notifications"}
                     {alerts.length > 0 && (
-                      <span className="bg-red-100 text-red-600 text-xs px-1.5 py-0.5 rounded-full font-medium">{alerts.length}</span>
+                      <span className="bg-red-500/15 text-red-500 text-xs px-1.5 py-0.5 rounded-full font-medium">{alerts.length}</span>
                     )}
                   </h3>
                   {alerts.length > 0 && (
-                    <button
-                      onClick={() => setReadAlerts(new Set(alerts.map((_, i) => i)))}
-                      className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
-                    >
-                      {isAr ? "تعليم الكل كمقروء" : "Mark all read"}
+                    <button onClick={() => setReadAlerts(new Set(alerts.map((_, i) => i)))}
+                      className="text-xs opacity-60 hover:opacity-100 transition-opacity" style={{ color: "var(--primary)" }}>
+                      {isAr ? "تعليم الكل" : "Mark all read"}
                     </button>
                   )}
                 </div>
                 <div className="max-h-72 overflow-y-auto">
                   {alerts.length === 0 ? (
                     <div className="py-8 text-center">
-                      <Bell className="w-8 h-8 text-slate-200 mx-auto mb-2" />
-                      <p className="text-sm text-slate-400">{t.noAlerts}</p>
+                      <Bell className="w-8 h-8 opacity-20 mx-auto mb-2" />
+                      <p className="text-sm opacity-50">{t.noAlerts}</p>
                     </div>
                   ) : (
-                    <div className="divide-y divide-slate-50">
+                    <div>
                       {alerts.map((a, i) => (
-                        <div
-                          key={i}
+                        <div key={i}
                           onClick={() => setReadAlerts(prev => { const s = new Set(Array.from(prev)); s.add(i); return s; })}
-                          className={`flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors ${
-                            readAlerts.has(i) ? "bg-white" : a.type === "error" ? "bg-red-50" : "bg-amber-50"
-                          } hover:bg-slate-50`}
-                        >
-                          <AlertTriangle className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
-                            a.type === "error" ? "text-red-500" : "text-amber-500"
-                          }`} />
+                          className="flex items-start gap-3 px-4 py-3 cursor-pointer transition-all"
+                          style={{
+                            background: readAlerts.has(i) ? "transparent" : a.type === "error" ? "oklch(0.6 0.2 20 / 8%)" : "oklch(0.75 0.15 60 / 8%)",
+                            borderBottom: "1px solid var(--lg-border)",
+                          }}>
+                          <AlertTriangle className={`w-4 h-4 mt-0.5 flex-shrink-0 ${a.type === "error" ? "text-red-500" : "text-amber-500"}`} />
                           <div className="flex-1 min-w-0">
-                            <p className={`text-xs font-semibold truncate ${
-                              readAlerts.has(i) ? "text-slate-500" : a.type === "error" ? "text-red-700" : "text-amber-700"
-                            }`}>{a.project}</p>
-                            <p className={`text-xs mt-0.5 ${
-                              readAlerts.has(i) ? "text-slate-400" : a.type === "error" ? "text-red-600" : "text-amber-600"
-                            }`}>{a.message}</p>
+                            <p className="text-xs font-semibold truncate" style={{ color: "var(--foreground)", opacity: readAlerts.has(i) ? 0.5 : 1 }}>{a.project}</p>
+                            <p className="text-xs mt-0.5 opacity-60">{a.message}</p>
                           </div>
                           {!readAlerts.has(i) && (
-                            <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
-                              a.type === "error" ? "bg-red-500" : "bg-amber-500"
-                            }`} />
+                            <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${a.type === "error" ? "bg-red-500" : "bg-amber-500"}`} />
                           )}
                         </div>
                       ))}
@@ -537,12 +538,10 @@ export default function PortfolioDashboard() {
                   )}
                 </div>
                 {alerts.length > 0 && (
-                  <div className="px-4 py-2 border-t border-slate-100 bg-slate-50">
-                    <button
-                      onClick={() => { setActiveTab("dashboard"); setShowNotifications(false); }}
-                      className="text-xs text-blue-600 hover:text-blue-800 transition-colors w-full text-center"
-                    >
-                      {isAr ? "عرض جميع التنبيهات في لوحة التحكم" : "View all alerts in dashboard"}
+                  <div className="px-4 py-2" style={{ borderTop: "1px solid var(--lg-border)" }}>
+                    <button onClick={() => { setActiveTab("dashboard"); setShowNotifications(false); }}
+                      className="text-xs opacity-60 hover:opacity-100 transition-opacity w-full text-center" style={{ color: "var(--primary)" }}>
+                      {isAr ? "عرض جميع التنبيهات" : "View all alerts"}
                     </button>
                   </div>
                 )}
@@ -550,29 +549,33 @@ export default function PortfolioDashboard() {
             )}
           </div>
 
+          <ThemeToggle />
           <button onClick={toggleLanguage}
-            className="flex items-center gap-1 text-xs text-slate-300 hover:text-white transition-colors">
+            className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-all opacity-60 hover:opacity-100"
+            style={{ color: "var(--lg-header-text)" }}>
             <Globe className="w-3.5 h-3.5" />{t.switchLang}
           </button>
           <button onClick={logout}
-            className="flex items-center gap-1 text-xs text-slate-300 hover:text-red-400 transition-colors">
+            className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-all opacity-60 hover:opacity-100 hover:text-red-400"
+            style={{ color: "var(--lg-header-text)" }}>
             <LogOut className="w-3.5 h-3.5" />{t.logout}
           </button>
         </div>
       </header>
 
       {/* Tabs */}
-      <div className="bg-white border-b border-slate-200 px-6">
+      <div className="px-6" style={{ borderBottom: "1px solid var(--lg-border)", background: "var(--lg-glass-bg)", backdropFilter: "var(--lg-blur)", WebkitBackdropFilter: "var(--lg-blur)" }}>
         <div className="flex gap-0 max-w-7xl mx-auto">
           {[
             { key: "dashboard", label: isAr ? "لوحة التحكم" : "Dashboard", icon: BarChart3 },
             { key: "users", label: t.userManagement, icon: Users },
           ].map(tab => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key as any)}
-              className={`flex items-center gap-2 px-5 py-3.5 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.key
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-slate-500 hover:text-slate-700"
-                }`}>
+              className="flex items-center gap-2 px-5 py-3.5 text-sm font-medium border-b-2 transition-all"
+              style={{
+                borderBottomColor: activeTab === tab.key ? "var(--primary)" : "transparent",
+                color: activeTab === tab.key ? "var(--primary)" : "var(--muted-foreground)",
+              }}>
               <tab.icon className="w-4 h-4" />
               {tab.label}
             </button>
@@ -588,37 +591,39 @@ export default function PortfolioDashboard() {
             {/* KPI Cards */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               {[
-                { label: t.totalRevenue, value: fmt(kpis.totalRevenue), icon: DollarSign, color: "text-blue-600", bg: "bg-blue-50" },
-                { label: t.totalCollected, value: fmt(kpis.totalCollected), icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50" },
-                { label: t.avgCPI, value: kpis.avgCPI.toFixed(2), icon: BarChart3, color: kpis.avgCPI >= 0.9 ? "text-emerald-600" : "text-red-600", bg: kpis.avgCPI >= 0.9 ? "bg-emerald-50" : "bg-red-50" },
-                { label: t.avgProfitability, value: `${kpis.avgProfit.toFixed(1)}%`, icon: TrendingUp, color: kpis.avgProfit >= 15 ? "text-emerald-600" : "text-amber-600", bg: kpis.avgProfit >= 15 ? "bg-emerald-50" : "bg-amber-50" },
-                { label: t.activeProjects, value: String(kpis.active), icon: FolderOpen, color: "text-blue-600", bg: "bg-blue-50" },
-                { label: t.atRiskProjects, value: String(kpis.atRisk), icon: AlertTriangle, color: kpis.atRisk > 0 ? "text-red-600" : "text-emerald-600", bg: kpis.atRisk > 0 ? "bg-red-50" : "bg-emerald-50" },
+                { label: t.totalRevenue, value: fmt(kpis.totalRevenue), icon: DollarSign, accent: "oklch(0.55 0.18 260)" },
+                { label: t.totalCollected, value: fmt(kpis.totalCollected), icon: TrendingUp, accent: "oklch(0.55 0.18 145)" },
+                { label: t.avgCPI, value: kpis.avgCPI.toFixed(2), icon: BarChart3, accent: kpis.avgCPI >= 0.9 ? "oklch(0.55 0.18 145)" : "oklch(0.6 0.2 20)" },
+                { label: t.avgProfitability, value: `${kpis.avgProfit.toFixed(1)}%`, icon: TrendingUp, accent: kpis.avgProfit >= 15 ? "oklch(0.55 0.18 145)" : "oklch(0.65 0.15 60)" },
+                { label: t.activeProjects, value: String(kpis.active), icon: FolderOpen, accent: "oklch(0.55 0.18 260)" },
+                { label: t.atRiskProjects, value: String(kpis.atRisk), icon: AlertTriangle, accent: kpis.atRisk > 0 ? "oklch(0.6 0.2 20)" : "oklch(0.55 0.18 145)" },
               ].map((kpi, i) => (
-                <div key={i} className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
-                  <div className={`w-8 h-8 rounded-lg ${kpi.bg} flex items-center justify-center mb-2`}>
-                    <kpi.icon className={`w-4 h-4 ${kpi.color}`} />
+                <div key={i} className="lg-card p-4">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-2"
+                    style={{ background: `${kpi.accent}20` }}>
+                    <kpi.icon className="w-4 h-4" style={{ color: kpi.accent }} />
                   </div>
-                  <p className="text-2xl font-bold text-slate-800">{kpi.value}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">{kpi.label}</p>
+                  <p className="text-2xl font-bold" style={{ color: "var(--foreground)" }}>{kpi.value}</p>
+                  <p className="text-xs opacity-50 mt-0.5">{kpi.label}</p>
                 </div>
               ))}
             </div>
 
             {/* Alerts */}
             {alerts.length > 0 && (
-              <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
-                <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
+              <div className="lg-card p-4">
+                <h3 className="font-semibold mb-3 flex items-center gap-2" style={{ color: "var(--foreground)" }}>
                   <AlertTriangle className="w-4 h-4 text-amber-500" />{t.alerts}
-                  <span className="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full font-medium">{alerts.length}</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: "oklch(0.6 0.2 20 / 15%)", color: "oklch(0.6 0.2 20)" }}>{alerts.length}</span>
                 </h3>
                 <div className="space-y-2">
                   {alerts.map((a, i) => (
-                    <div key={i} className={`flex items-start gap-3 p-3 rounded-lg ${a.type === "error" ? "bg-red-50 border border-red-100" : "bg-amber-50 border border-amber-100"}`}>
+                    <div key={i} className="flex items-start gap-3 p-3 rounded-xl"
+                      style={{ background: a.type === "error" ? "oklch(0.6 0.2 20 / 8%)" : "oklch(0.75 0.15 60 / 8%)", border: `1px solid ${a.type === "error" ? "oklch(0.6 0.2 20 / 20%)" : "oklch(0.75 0.15 60 / 20%)"}` }}>
                       <AlertTriangle className={`w-4 h-4 mt-0.5 flex-shrink-0 ${a.type === "error" ? "text-red-500" : "text-amber-500"}`} />
                       <div>
-                        <p className={`text-sm font-medium ${a.type === "error" ? "text-red-700" : "text-amber-700"}`}>{a.project}</p>
-                        <p className={`text-xs ${a.type === "error" ? "text-red-600" : "text-amber-600"}`}>{a.message}</p>
+                        <p className="text-sm font-medium" style={{ color: a.type === "error" ? "oklch(0.6 0.2 20)" : "oklch(0.65 0.15 60)" }}>{a.project}</p>
+                        <p className="text-xs opacity-70">{a.message}</p>
                       </div>
                     </div>
                   ))}
@@ -628,15 +633,20 @@ export default function PortfolioDashboard() {
 
             {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <div className="lg:col-span-2 bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+              <div className="lg:col-span-2 lg-card p-4">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-slate-800">
+                  <h3 className="font-semibold" style={{ color: "var(--foreground)" }}>
                     {cashFlowView === "monthly" ? t.cashFlowMonthly : t.cashFlowQuarterly}
                   </h3>
                   <div className="flex gap-1">
                     {(["monthly", "quarterly"] as const).map(v => (
                       <button key={v} onClick={() => setCashFlowView(v)}
-                        className={`text-xs px-3 py-1 rounded-lg transition-colors ${cashFlowView === v ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+                        className="text-xs px-3 py-1 rounded-lg transition-all"
+                        style={{
+                          background: cashFlowView === v ? "var(--primary)" : "var(--lg-glass-bg)",
+                          color: cashFlowView === v ? "var(--primary-foreground)" : "var(--muted-foreground)",
+                          border: "1px solid var(--lg-glass-border)",
+                        }}>
                         {v === "monthly" ? t.monthly : t.quarterly}
                       </button>
                     ))}
@@ -655,8 +665,8 @@ export default function PortfolioDashboard() {
                 </ResponsiveContainer>
               </div>
 
-              <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
-                <h3 className="font-semibold text-slate-800 mb-4">{t.phaseDistribution}</h3>
+              <div className="lg-card p-4">
+                <h3 className="font-semibold mb-4" style={{ color: "var(--foreground)" }}>{t.phaseDistribution}</h3>
                 {phaseData.length > 0 ? (
                   <>
                     <ResponsiveContainer width="100%" height={160}>
@@ -672,9 +682,9 @@ export default function PortfolioDashboard() {
                         <div key={i} className="flex items-center justify-between text-xs">
                           <div className="flex items-center gap-1.5">
                             <div className="w-2.5 h-2.5 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />
-                            <span className="text-slate-600">{d.name}</span>
+                            <span className="opacity-70" style={{ color: "var(--foreground)" }}>{d.name}</span>
                           </div>
-                          <span className="font-medium text-slate-800">{d.value}</span>
+                          <span className="font-medium" style={{ color: "var(--foreground)" }}>{d.value}</span>
                         </div>
                       ))}
                     </div>
@@ -688,63 +698,70 @@ export default function PortfolioDashboard() {
             </div>
 
             {/* Projects Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-              <div className="p-4 border-b border-slate-100 flex items-center justify-between flex-wrap gap-3">
-                <h3 className="font-semibold text-slate-800 flex items-center gap-2">
-                  <FolderOpen className="w-4 h-4 text-blue-600" />
+            <div className="lg-card overflow-hidden">
+              <div className="p-4 flex items-center justify-between flex-wrap gap-3" style={{ borderBottom: "1px solid var(--lg-border)" }}>
+                <h3 className="font-semibold flex items-center gap-2" style={{ color: "var(--foreground)" }}>
+                  <FolderOpen className="w-4 h-4" style={{ color: "var(--primary)" }} />
                   {t.projectPerformance}
-                  <span className="text-xs text-slate-400 font-normal">({projects.length})</span>
+                  <span className="text-xs opacity-40 font-normal">({projects.length})</span>
                 </h3>
                 <select value={managerFilter} onChange={(e) => setManagerFilter(e.target.value)}
-                  className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  className="text-sm rounded-xl px-3 py-1.5 focus:outline-none"
+                  style={{ background: "var(--lg-glass-bg)", border: "1px solid var(--lg-glass-border)", color: "var(--foreground)" }}>
                   <option value="all">{t.allManagers}</option>
                   {managers.map(m => <option key={m.id} value={String(m.id)}>{m.name}</option>)}
                 </select>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-slate-50">
-                    <tr>
+                  <thead>
+                    <tr style={{ background: "oklch(0.5 0.01 260 / 5%)" }}>
                       {[t.projectName, t.phase, t.contractValue, t.collected, t.cpi, t.profitability, t.completion, t.status, ""].map((h, i) => (
-                        <th key={i} className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-start whitespace-nowrap">{h}</th>
+                        <th key={i} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-start whitespace-nowrap opacity-50">{h}</th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-50">
+                  <tbody>
                     {projects.length === 0 ? (
-                      <tr><td colSpan={9} className="text-center py-8 text-slate-400">{isAr ? "لا توجد مشاريع" : "No projects"}</td></tr>
+                      <tr><td colSpan={9} className="text-center py-8 opacity-40">{isAr ? "لا توجد مشاريع" : "No projects"}</td></tr>
                     ) : projects.map((p: any) => {
                       const status = getStatus(p);
                       const cpi = Number(p.cpi || 0);
                       const profit = Number(p.profitability || 0);
                       const completion = Number(p.percentComplete || 0);
                       return (
-                        <tr key={p.id} className="hover:bg-slate-50 transition-colors">
+                        <tr key={p.id} className="transition-colors"
+                          style={{ borderBottom: "1px solid var(--lg-border)" }}
+                          onMouseEnter={e => (e.currentTarget.style.background = "oklch(0.5 0.01 260 / 4%)")}
+                          onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
                           <td className="px-4 py-3">
-                            <p className="font-medium text-slate-800">{p.name}</p>
-                            <p className="text-xs text-slate-400">{p.code}</p>
+                            <p className="font-medium" style={{ color: "var(--foreground)" }}>{p.name}</p>
+                            <p className="text-xs opacity-40">{p.code}</p>
                           </td>
                           <td className="px-4 py-3">
-                            <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium">{p.phase || "—"}</span>
+                            <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                              style={{ background: "oklch(0.55 0.18 260 / 12%)", color: "oklch(0.55 0.18 260)" }}>
+                              {p.phase || "—"}
+                            </span>
                           </td>
-                          <td className="px-4 py-3 text-slate-700 whitespace-nowrap">{fmt(Number(p.totalContractValue || 0))}</td>
-                          <td className="px-4 py-3 text-slate-700 whitespace-nowrap">{fmt(Number(p.totalCollected || 0))}</td>
+                          <td className="px-4 py-3 whitespace-nowrap opacity-80">{fmt(Number(p.totalContractValue || 0))}</td>
+                          <td className="px-4 py-3 whitespace-nowrap opacity-80">{fmt(Number(p.totalCollected || 0))}</td>
                           <td className="px-4 py-3">
-                            <span className={`font-semibold ${cpi >= 1 ? "text-emerald-600" : cpi >= 0.85 ? "text-amber-600" : "text-red-600"}`}>
+                            <span className="font-semibold" style={{ color: cpi >= 1 ? "oklch(0.55 0.18 145)" : cpi >= 0.85 ? "oklch(0.65 0.15 60)" : "oklch(0.6 0.2 20)" }}>
                               {cpi > 0 ? cpi.toFixed(2) : "—"}
                             </span>
                           </td>
                           <td className="px-4 py-3">
-                            <span className={`font-semibold ${profit >= 15 ? "text-emerald-600" : profit >= 0 ? "text-amber-600" : "text-red-600"}`}>
+                            <span className="font-semibold" style={{ color: profit >= 15 ? "oklch(0.55 0.18 145)" : profit >= 0 ? "oklch(0.65 0.15 60)" : "oklch(0.6 0.2 20)" }}>
                               {profit.toFixed(1)}%
                             </span>
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              <div className="flex-1 bg-slate-100 rounded-full h-1.5 min-w-[60px]">
-                                <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${Math.min(100, completion)}%` }} />
+                              <div className="flex-1 rounded-full h-1.5 min-w-[60px]" style={{ background: "oklch(0.5 0.01 260 / 15%)" }}>
+                                <div className="h-1.5 rounded-full" style={{ width: `${Math.min(100, completion)}%`, background: "var(--primary)" }} />
                               </div>
-                              <span className="text-xs text-slate-600 whitespace-nowrap">{completion.toFixed(0)}%</span>
+                              <span className="text-xs opacity-60 whitespace-nowrap">{completion.toFixed(0)}%</span>
                             </div>
                           </td>
                           <td className="px-4 py-3">
@@ -752,7 +769,8 @@ export default function PortfolioDashboard() {
                           </td>
                           <td className="px-4 py-3">
                             <button onClick={() => navigate(`/project/${p.id}`)}
-                              className="text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors whitespace-nowrap">
+                              className="text-xs font-medium transition-opacity opacity-60 hover:opacity-100 whitespace-nowrap"
+                              style={{ color: "var(--primary)" }}>
                               {t.viewProject} →
                             </button>
                           </td>
@@ -770,61 +788,69 @@ export default function PortfolioDashboard() {
         {activeTab === "users" && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <Users className="w-5 h-5 text-blue-600" />
+              <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: "var(--foreground)" }}>
+                <Users className="w-5 h-5" style={{ color: "var(--primary)" }} />
                 {t.userManagement}
               </h2>
               <button onClick={() => setShowAddUser(true)}
-                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white transition-all"
+                style={{ background: "var(--primary)" }}
+                onMouseEnter={e => (e.currentTarget.style.opacity = "0.9")}
+                onMouseLeave={e => (e.currentTarget.style.opacity = "1")}>
                 <Plus className="w-4 h-4" />
                 {t.addEngineer}
               </button>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-              <div className="p-4 border-b border-slate-100">
-                <h3 className="font-semibold text-slate-700 text-sm">{t.engineers}</h3>
+            <div className="lg-card overflow-hidden">
+              <div className="p-4" style={{ borderBottom: "1px solid var(--lg-border)" }}>
+                <h3 className="font-semibold text-sm opacity-70">{t.engineers}</h3>
               </div>
               {engineers.length === 0 ? (
-                <div className="p-8 text-center text-slate-400 text-sm">{t.noEngineers}</div>
+                <div className="p-8 text-center opacity-40 text-sm">{t.noEngineers}</div>
               ) : (
-                <div className="divide-y divide-slate-50">
+                <div>
                   {engineers.map(user => {
                     const userProjects = (summary?.projects || []).filter((p: any) => p.appUserId === user.id);
                     return (
-                      <div key={user.id} className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors">
+                      <div key={user.id} className="flex items-center justify-between p-4 transition-all"
+                        style={{ borderBottom: "1px solid var(--lg-border)" }}
+                        onMouseEnter={e => (e.currentTarget.style.background = "oklch(0.5 0.01 260 / 4%)")}
+                        onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-sm">
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm"
+                            style={{ background: "oklch(0.55 0.18 260 / 15%)", color: "oklch(0.55 0.18 260)" }}>
                             {user.name.charAt(0)}
                           </div>
                           <div>
-                            <p className="font-medium text-slate-800">{user.name}</p>
-                            {user.nameEn && <p className="text-xs text-slate-400">{user.nameEn}</p>}
+                            <p className="font-medium" style={{ color: "var(--foreground)" }}>{user.name}</p>
+                            {user.nameEn && <p className="text-xs opacity-40">{user.nameEn}</p>}
                             <div className="flex items-center gap-2 mt-0.5">
-                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${user.role === "portfolio_manager"
-                                ? "bg-purple-100 text-purple-700"
-                                : "bg-blue-100 text-blue-700"
-                                }`}>
+                              <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                                style={{
+                                  background: user.role === "portfolio_manager" ? "oklch(0.6 0.18 300 / 15%)" : "oklch(0.55 0.18 260 / 15%)",
+                                  color: user.role === "portfolio_manager" ? "oklch(0.6 0.18 300)" : "oklch(0.55 0.18 260)",
+                                }}>
                                 {user.role === "portfolio_manager" ? t.portfolioManager : t.projectManager}
                               </span>
-                              <span className="text-xs text-slate-400">
-                                {userProjects.length} {t.projects}
-                              </span>
+                              <span className="text-xs opacity-40">{userProjects.length} {t.projects}</span>
                             </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => setChangePinUser({ id: user.id, name: user.name })}
-                            className="flex items-center gap-1.5 text-xs text-slate-600 hover:text-blue-600 border border-slate-200 hover:border-blue-300 px-3 py-1.5 rounded-lg transition-colors"
-                          >
+                          <button onClick={() => setChangePinUser({ id: user.id, name: user.name })}
+                            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl transition-all"
+                            style={{ background: "var(--lg-glass-bg)", border: "1px solid var(--lg-glass-border)", color: "var(--foreground)" }}
+                            onMouseEnter={e => (e.currentTarget.style.background = "var(--lg-glass-hover)")}
+                            onMouseLeave={e => (e.currentTarget.style.background = "var(--lg-glass-bg)")}>
                             <KeyRound className="w-3.5 h-3.5" />
                             {t.changePin}
                           </button>
-                          <button
-                            onClick={() => setConfirmDeleteId(user.id)}
-                            className="flex items-center gap-1.5 text-xs text-slate-600 hover:text-red-600 border border-slate-200 hover:border-red-300 px-3 py-1.5 rounded-lg transition-colors"
-                          >
+                          <button onClick={() => setConfirmDeleteId(user.id)}
+                            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl transition-all"
+                            style={{ background: "oklch(0.6 0.2 20 / 8%)", border: "1px solid oklch(0.6 0.2 20 / 20%)", color: "oklch(0.6 0.2 20)" }}
+                            onMouseEnter={e => (e.currentTarget.style.background = "oklch(0.6 0.2 20 / 15%)")}
+                            onMouseLeave={e => (e.currentTarget.style.background = "oklch(0.6 0.2 20 / 8%)")}>
                             <Trash2 className="w-3.5 h-3.5" />
                             {t.deleteUser}
                           </button>
@@ -838,32 +864,38 @@ export default function PortfolioDashboard() {
 
             {/* Portfolio Managers section */}
             {(appUsers || []).filter(u => u.role === "portfolio_manager").length > 0 && (
-              <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-                <div className="p-4 border-b border-slate-100">
-                  <h3 className="font-semibold text-slate-700 text-sm flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-purple-500" />
+              <div className="lg-card overflow-hidden">
+                <div className="p-4" style={{ borderBottom: "1px solid var(--lg-border)" }}>
+                  <h3 className="font-semibold text-sm flex items-center gap-2" style={{ color: "var(--foreground)" }}>
+                    <span className="w-2 h-2 rounded-full" style={{ background: "oklch(0.6 0.18 300)" }} />
                     {t.portfolioManager}
                   </h3>
                 </div>
-                <div className="divide-y divide-slate-50">
+                <div>
                   {(appUsers || []).filter(u => u.role === "portfolio_manager").map(user => (
-                    <div key={user.id} className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors">
+                    <div key={user.id} className="flex items-center justify-between p-4 transition-all"
+                      style={{ borderBottom: "1px solid var(--lg-border)" }}
+                      onMouseEnter={e => (e.currentTarget.style.background = "oklch(0.5 0.01 260 / 4%)")}
+                      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-sm">
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm"
+                          style={{ background: "oklch(0.6 0.18 300 / 15%)", color: "oklch(0.6 0.18 300)" }}>
                           {user.name.charAt(0)}
                         </div>
                         <div>
-                          <p className="font-medium text-slate-800">{user.name}</p>
-                          {user.nameEn && <p className="text-xs text-slate-400">{user.nameEn}</p>}
-                          <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">
+                          <p className="font-medium" style={{ color: "var(--foreground)" }}>{user.name}</p>
+                          {user.nameEn && <p className="text-xs opacity-40">{user.nameEn}</p>}
+                          <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                            style={{ background: "oklch(0.6 0.18 300 / 15%)", color: "oklch(0.6 0.18 300)" }}>
                             {t.portfolioManager}
                           </span>
                         </div>
                       </div>
-                      <button
-                        onClick={() => setChangePinUser({ id: user.id, name: user.name })}
-                        className="flex items-center gap-1.5 text-xs text-slate-600 hover:text-blue-600 border border-slate-200 hover:border-blue-300 px-3 py-1.5 rounded-lg transition-colors"
-                      >
+                      <button onClick={() => setChangePinUser({ id: user.id, name: user.name })}
+                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl transition-all"
+                        style={{ background: "var(--lg-glass-bg)", border: "1px solid var(--lg-glass-border)", color: "var(--foreground)" }}
+                        onMouseEnter={e => (e.currentTarget.style.background = "var(--lg-glass-hover)")}
+                        onMouseLeave={e => (e.currentTarget.style.background = "var(--lg-glass-bg)")}>
                         <KeyRound className="w-3.5 h-3.5" />
                         {t.changePin}
                       </button>

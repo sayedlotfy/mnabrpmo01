@@ -1,0 +1,34 @@
+{
+  "query": "UPDATE appUsers SET name = 'السيد لطفي', nameEn = 'Sayed Lotfy' WHERE role = 'portfolio_manager';\nSELECT id, name, nameEn, role FROM appUsers;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3GFQbUAg4PvgXYh.92d5e419220b --database eFfuN9v8AVB9nn8xTmwtHX --execute UPDATE appUsers SET name = 'السيد لطفي', nameEn = 'Sayed Lotfy' WHERE role = 'portfolio_manager';\nSELECT id, name, nameEn, role FROM appUsers;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "السيد لطفي",
+      "nameEn": "Sayed Lotfy",
+      "role": "portfolio_manager"
+    },
+    {
+      "id": "2",
+      "name": "مهندس تجريبي",
+      "nameEn": "Test Engineer",
+      "role": "project_manager"
+    },
+    {
+      "id": "30001",
+      "name": "وليد المبيض",
+      "nameEn": "Waleed Almobiedh",
+      "role": "project_manager"
+    },
+    {
+      "id": "60001",
+      "name": "test",
+      "nameEn": "tst",
+      "role": "project_manager"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tnameEn\trole\n1\tالسيد لطفي\tSayed Lotfy\tportfolio_manager\n2\tمهندس تجريبي\tTest Engineer\tproject_manager\n30001\tوليد المبيض\tWaleed Almobiedh\tproject_manager\n60001\ttest\ttst\tproject_manager\n",
+  "stderr": "",
+  "execution_time_ms": 1763
+}

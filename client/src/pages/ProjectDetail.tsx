@@ -12,6 +12,9 @@ import { useRoute, Link } from "wouter";
 import { useAppUser } from "@/contexts/AppUserContext";
 import { exportProjectPDF } from "@/lib/exportPdf";
 import { FileDown } from "lucide-react";
+import ThemeToggle from "@/components/ThemeToggle";
+import LastUpdatedBanner from "@/components/LastUpdatedBanner";
+import DurationLogTab from "@/components/DurationLogTab";
 
 // ---- Helper Components ----
 function MetricCard({ title, value, subtext, trend, icon: Icon, indicatorColor }: {
@@ -338,6 +341,7 @@ export default function ProjectDetail() {
     { key: "budget", label: t.budgeting },
     { key: "logs", label: t.timeExpenses },
     { key: "payments", label: t.payments },
+    { key: "timeline", label: t.timelineTab || (lang === 'ar' ? 'الجدول الزمني والمدة' : 'Timeline & Duration') },
     { key: "settings", label: t.settings },
   ];
 
@@ -965,50 +969,61 @@ export default function ProjectDetail() {
 
   // ============ MAIN LAYOUT ============
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 p-4 md:p-8" dir={isRTL ? "rtl" : "ltr"}>
+    <div className="min-h-screen p-4 md:p-8" dir={isRTL ? "rtl" : "ltr"}
+      style={{ background: "var(--lg-bg-gradient)", backgroundAttachment: "fixed", color: "var(--foreground)" }}>
+      <LastUpdatedBanner />
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <header className="bg-white rounded-2xl border border-slate-100 shadow-sm px-5 py-4 mb-6">
+        <header className="lg-card px-5 py-4 mb-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div className="flex items-center gap-3">
               <Link href="/projects">
-                <button className="p-2 rounded-xl hover:bg-slate-100 transition-colors">
-                  <BackArrow className="w-5 h-5 text-slate-600" />
+                <button className="p-2 rounded-xl transition-all" style={{ background: "var(--lg-glass-bg)", border: "1px solid var(--lg-glass-border)" }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "var(--lg-glass-hover)")}
+                  onMouseLeave={e => (e.currentTarget.style.background = "var(--lg-glass-bg)")}>
+                  <BackArrow className="w-5 h-5" style={{ color: "var(--foreground)" }} />
                 </button>
               </Link>
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-xl font-bold text-slate-900">{settingsForm?.name || project.name}</h1>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">{project.code}</span>
+                  <h1 className="text-xl font-bold" style={{ color: "var(--foreground)" }}>{settingsForm?.name || project.name}</h1>
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                    style={{ background: "oklch(0.55 0.18 260 / 12%)", color: "oklch(0.55 0.18 260)" }}>{project.code}</span>
                   {project.phase && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-medium">{project.phase}</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                      style={{ background: "oklch(0.6 0.18 300 / 12%)", color: "oklch(0.6 0.18 300)" }}>{project.phase}</span>
                   )}
                   {isProjectPaused && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                      style={{ background: "oklch(0.65 0.15 60 / 12%)", color: "oklch(0.65 0.15 60)" }}>
                       {lang === 'ar' ? 'متوقف' : 'Paused'}
                     </span>
                   )}
                 </div>
-                <p className="text-slate-400 text-xs mt-0.5">{lang === 'ar' ? 'تتبع الميزانية والربحية' : 'Fee Burn & Profitability Tracker'}</p>
+                <p className="text-xs mt-0.5 opacity-40">{lang === 'ar' ? 'تتبع الميزانية والربحية' : 'Fee Burn & Profitability Tracker'}</p>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               {/* CPI Badge */}
-              <div className={`px-3 py-1.5 rounded-xl border text-sm font-semibold ${
-                financials.CPI >= 1 ? 'bg-emerald-50 border-emerald-200 text-emerald-700' :
-                financials.CPI >= 0.8 ? 'bg-amber-50 border-amber-200 text-amber-700' :
-                'bg-rose-50 border-rose-200 text-rose-700'
-              }`}>
+              <div className="px-3 py-1.5 rounded-xl text-sm font-semibold"
+                style={{
+                  background: financials.CPI >= 1 ? "oklch(0.55 0.18 145 / 12%)" : financials.CPI >= 0.8 ? "oklch(0.65 0.15 60 / 12%)" : "oklch(0.6 0.2 20 / 12%)",
+                  border: `1px solid ${financials.CPI >= 1 ? "oklch(0.55 0.18 145 / 30%)" : financials.CPI >= 0.8 ? "oklch(0.65 0.15 60 / 30%)" : "oklch(0.6 0.2 20 / 30%)"}`,
+                  color: financials.CPI >= 1 ? "oklch(0.45 0.18 145)" : financials.CPI >= 0.8 ? "oklch(0.5 0.15 60)" : "oklch(0.5 0.2 20)",
+                }}>
                 CPI: {financials.CPI > 0 ? financials.CPI.toFixed(2) : 'N/A'}
               </div>
               {/* Profit Badge */}
-              <div className={`px-3 py-1.5 rounded-xl border text-sm font-semibold ${
-                financials.currentMargin >= Number(project.targetMargin) ? 'bg-emerald-50 border-emerald-200 text-emerald-700' :
-                financials.currentMargin >= 10 ? 'bg-amber-50 border-amber-200 text-amber-700' :
-                'bg-rose-50 border-rose-200 text-rose-700'
-              }`}>
+              <div className="px-3 py-1.5 rounded-xl text-sm font-semibold"
+                style={{
+                  background: financials.currentMargin >= Number(project.targetMargin) ? "oklch(0.55 0.18 145 / 12%)" : financials.currentMargin >= 10 ? "oklch(0.65 0.15 60 / 12%)" : "oklch(0.6 0.2 20 / 12%)",
+                  border: `1px solid ${financials.currentMargin >= Number(project.targetMargin) ? "oklch(0.55 0.18 145 / 30%)" : financials.currentMargin >= 10 ? "oklch(0.65 0.15 60 / 30%)" : "oklch(0.6 0.2 20 / 30%)"}`,
+                  color: financials.currentMargin >= Number(project.targetMargin) ? "oklch(0.45 0.18 145)" : financials.currentMargin >= 10 ? "oklch(0.5 0.15 60)" : "oklch(0.5 0.2 20)",
+                }}>
                 {lang === 'ar' ? 'ربح:' : 'Profit:'} {fmtMoney(financials.currentMargin * financials.netRevenue / 100)}
               </div>
+              {/* Theme Toggle */}
+              <ThemeToggle />
               {/* Export PDF */}
               <button
                 onClick={async () => {
@@ -1052,13 +1067,19 @@ export default function ProjectDetail() {
                   }
                 }}
                 disabled={isExportingPdf}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors disabled:opacity-50">
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-all disabled:opacity-50"
+                style={{ background: "var(--foreground)", color: "var(--background)" }}
+                onMouseEnter={e => (e.currentTarget.style.opacity = "0.85")}
+                onMouseLeave={e => (e.currentTarget.style.opacity = "1")}>
                 {isExportingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
                 PDF
               </button>
               {/* Language Toggle */}
               <button onClick={toggleLanguage}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm transition-colors">
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm transition-all"
+                style={{ background: "var(--lg-glass-bg)", border: "1px solid var(--lg-glass-border)", color: "var(--foreground)" }}
+                onMouseEnter={e => (e.currentTarget.style.background = "var(--lg-glass-hover)")}
+                onMouseLeave={e => (e.currentTarget.style.background = "var(--lg-glass-bg)")}>
                 <Globe className="w-4 h-4" />
                 {lang === 'ar' ? 'EN' : 'ع'}
               </button>
@@ -1067,11 +1088,14 @@ export default function ProjectDetail() {
         </header>
 
         {/* Navigation Tabs */}
-        <div className="flex gap-1 mb-6 border-b overflow-x-auto">
+        <div className="flex gap-1 mb-6 overflow-x-auto" style={{ borderBottom: "1px solid var(--lg-border)" }}>
           {tabs.map(tab => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap
-                ${activeTab === tab.key ? 'border-slate-900 text-slate-900' : 'border-transparent text-muted-foreground hover:text-slate-700'}`}>
+              className="px-4 py-2 text-sm font-medium border-b-2 transition-all whitespace-nowrap"
+              style={{
+                borderBottomColor: activeTab === tab.key ? "var(--primary)" : "transparent",
+                color: activeTab === tab.key ? "var(--primary)" : "var(--muted-foreground)",
+              }}>
               {tab.label}
             </button>
           ))}
@@ -1083,6 +1107,17 @@ export default function ProjectDetail() {
           {activeTab === 'budget' && renderBudget()}
           {activeTab === 'logs' && renderLogs()}
           {activeTab === 'payments' && renderPayments()}
+          {activeTab === 'timeline' && project && (
+            <DurationLogTab
+              projectId={projectId}
+              startDate={project.startDate}
+              endDate={project.endDate}
+              stoppageDays={project.stoppageDays ?? 0}
+              isPaused={project.isPaused ?? false}
+              pauseStartDate={project.pauseStartDate ?? null}
+              isPortfolioManager={isPortfolioManager}
+            />
+          )}
           {activeTab === 'settings' && renderSettings()}
         </main>
       </div>

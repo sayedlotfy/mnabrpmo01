@@ -1,0 +1,8 @@
+{
+  "query": "UPDATE app_users SET name = 'السيد لطفي' WHERE role = 'portfolio_manager' OR name LIKE '%سيد%' OR name LIKE '%Sayed%' OR name LIKE '%مدير التصميم%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3GFQbUAg4PvgXYh.92d5e419220b --database eFfuN9v8AVB9nn8xTmwtHX --execute UPDATE app_users SET name = 'السيد لطفي' WHERE role = 'portfolio_manager' OR name LIKE '%سيد%' OR name LIKE '%Sayed%' OR name LIKE '%مدير التصميم%';",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1146 (42S02) at line 1: Table 'effun9v8avb9nn8xtmwthx.app_users' doesn't exist"
+  ]
+}

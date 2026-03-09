@@ -1,0 +1,50 @@
+{
+  "query": "-- Add real project managers from Excel data\n-- PIN hashed as SHA256 of \"1234\" for testing = 03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4\nINSERT INTO appUsers (name, nameEn, role, pinHash, isActive) VALUES\n('محمود يوسف', 'Mahmoud Yousef', 'project_manager', '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4', true),\n('مصطفى صابر', 'Mostafa Saber', 'project_manager', '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4', true),\n('سعيد', 'Saeed', 'project_manager', '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4', true),\n('محمد الهودلي', 'Mohammed Alhoudali', 'project_manager', '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4', true);\nSELECT id, name, role FROM appUsers;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3GFQbUAg4PvgXYh.92d5e419220b --database eFfuN9v8AVB9nn8xTmwtHX --execute -- Add real project managers from Excel data\n-- PIN hashed as SHA256 of \"1234\" for testing = 03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4\nINSERT INTO appUsers (name, nameEn, role, pinHash, isActive) VALUES\n('محمود يوسف', 'Mahmoud Yousef', 'project_manager', '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4', true),\n('مصطفى صابر', 'Mostafa Saber', 'project_manager', '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4', true),\n('سعيد', 'Saeed', 'project_manager', '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4', true),\n('محمد الهودلي', 'Mohammed Alhoudali', 'project_manager', '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4', true);\nSELECT id, name, role FROM appUsers;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "السيد لطفي",
+      "role": "portfolio_manager"
+    },
+    {
+      "id": "2",
+      "name": "مهندس تجريبي",
+      "role": "project_manager"
+    },
+    {
+      "id": "30001",
+      "name": "وليد المبيض",
+      "role": "project_manager"
+    },
+    {
+      "id": "60001",
+      "name": "test",
+      "role": "project_manager"
+    },
+    {
+      "id": "60002",
+      "name": "محمود يوسف",
+      "role": "project_manager"
+    },
+    {
+      "id": "60003",
+      "name": "مصطفى صابر",
+      "role": "project_manager"
+    },
+    {
+      "id": "60004",
+      "name": "سعيد",
+      "role": "project_manager"
+    },
+    {
+      "id": "60005",
+      "name": "محمد الهودلي",
+      "role": "project_manager"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\trole\n1\tالسيد لطفي\tportfolio_manager\n2\tمهندس تجريبي\tproject_manager\n30001\tوليد المبيض\tproject_manager\n60001\ttest\tproject_manager\n60002\tمحمود يوسف\tproject_manager\n60003\tمصطفى صابر\tproject_manager\n60004\tسعيد\tproject_manager\n60005\tمحمد الهودلي\tproject_manager\n",
+  "stderr": "",
+  "execution_time_ms": 1754
+}

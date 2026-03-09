@@ -1,0 +1,30 @@
+{
+  "query": "SELECT id, name, role FROM appUsers;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3GFQbUAg4PvgXYh.92d5e419220b --database eFfuN9v8AVB9nn8xTmwtHX --execute SELECT id, name, role FROM appUsers;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "سيد | مدير التصميم",
+      "role": "portfolio_manager"
+    },
+    {
+      "id": "2",
+      "name": "مهندس تجريبي",
+      "role": "project_manager"
+    },
+    {
+      "id": "30001",
+      "name": "وليد المبيض",
+      "role": "project_manager"
+    },
+    {
+      "id": "60001",
+      "name": "test",
+      "role": "project_manager"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\trole\n1\tسيد | مدير التصميم\tportfolio_manager\n2\tمهندس تجريبي\tproject_manager\n30001\tوليد المبيض\tproject_manager\n60001\ttest\tproject_manager\n",
+  "stderr": "",
+  "execution_time_ms": 1541
+}

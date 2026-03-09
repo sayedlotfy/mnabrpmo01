@@ -11,6 +11,7 @@ import {
   timeLogs, InsertTimeLog,
   expenses, InsertExpense,
   payments, InsertPayment,
+  projectEvents, InsertProjectEvent,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -170,6 +171,7 @@ export async function deleteProject(projectId: number) {
   await db.delete(timeLogs).where(eq(timeLogs.projectId, projectId));
   await db.delete(expenses).where(eq(expenses.projectId, projectId));
   await db.delete(payments).where(eq(payments.projectId, projectId));
+  await db.delete(projectEvents).where(eq(projectEvents.projectId, projectId));
   return await db.delete(projects).where(eq(projects.id, projectId));
 }
 
@@ -397,4 +399,79 @@ export async function deletePayment(id: number) {
   const result = await db.delete(payments).where(eq(payments.id, id));
   if (row.length > 0) await recalcProjectContractValue(row[0].projectId);
   return result;
+}
+
+// ============ Project Events (Duration Log) ============
+
+export async function getProjectEvents(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db
+    .select()
+    .from(projectEvents)
+    .where(eq(projectEvents.projectId, projectId))
+    .orderBy(projectEvents.eventDate);
+}
+
+export async function createProjectEvent(data: InsertProjectEvent) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.insert(projectEvents).values(data);
+}
+
+export async function deleteProjectEvent(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.delete(projectEvents).where(eq(projectEvents.id, id));
+}
+
+/**
+ * Toggle project pause/resume with mandatory reason.
+ * Records a projectEvent and updates project.isPaused + stoppageDays.
+ */
+export async function toggleProjectPause(
+  projectId: number,
+  reason: string,
+  recordedBy: string,
+  today: string // YYYY-MM-DD
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const rows = await db.select().from(projects).where(eq(projects.id, projectId)).limit(1);
+  if (!rows.length) throw new Error("Project not found");
+  const project = rows[0];
+
+  if (!project.isPaused) {
+    // Pausing the project
+    await db.insert(projectEvents).values({
+      projectId,
+      eventType: "pause",
+      eventDate: today,
+      reason,
+      recordedBy,
+    });
+    await db.update(projects).set({ isPaused: true, pauseStartDate: today }).where(eq(projects.id, projectId));
+  } else {
+    // Resuming the project - calculate working days paused
+    const pauseStart = project.pauseStartDate ?? today;
+    const { countWorkingDays } = await import("../shared/workingDays.js");
+    const pausedDays = countWorkingDays(pauseStart, today);
+    const newStoppageDays = (project.stoppageDays ?? 0) + pausedDays;
+
+    await db.insert(projectEvents).values({
+      projectId,
+      eventType: "resume",
+      eventDate: today,
+      reason,
+      recordedBy,
+    });
+    await db.update(projects)
+      .set({ isPaused: false, pauseStartDate: null, stoppageDays: newStoppageDays })
+      .where(eq(projects.id, projectId));
+  }
+
+  // Return updated project
+  const updated = await db.select().from(projects).where(eq(projects.id, projectId)).limit(1);
+  return updated[0];
 }

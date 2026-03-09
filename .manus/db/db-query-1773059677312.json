@@ -1,0 +1,80 @@
+{
+  "query": "-- Get appUser IDs for assignment\n-- محمود يوسف, مصطفى صابر, سعيد, محمد الهودلي, وليد المبيض, السيد لطفي\n-- Insert 10 real projects from Excel\nINSERT INTO projects (userId, appUserId, name, code, manager, coordinator, phase, totalContractValue, currency, startDate, endDate, percentComplete, targetMargin, overheadMultiplier) VALUES\n(1, (SELECT id FROM appUsers WHERE name='محمود يوسف' LIMIT 1), 'مركز الملك عبد العزيز الإسلامي بجيبوتي', '495', 'محمود يوسف', 'سيد لطفي', 'CD', 745500.00, 'SAR', '2023-01-01', '2025-12-31', 75, 20, 2.5),\n(1, (SELECT id FROM appUsers WHERE name='مصطفى صابر' LIMIT 1), 'مشروع كندل المسار الرياضي', '3092', 'مصطفى صابر', 'سيد لطفي', 'Tender', 844100.00, 'SAR', '2023-06-01', '2025-12-31', 50, 20, 2.5),\n(1, (SELECT id FROM appUsers WHERE name='محمود يوسف' LIMIT 1), 'مشروع إسكان العويضة كومبلكس', '514', 'محمود يوسف', 'سيد لطفي', 'CD', 217350.00, 'SAR', '2022-09-01', '2025-06-30', 25, 20, 2.5),\n(1, (SELECT id FROM appUsers WHERE name='سعيد' LIMIT 1), 'كومباوند الدرعية - حلول فادن', '3274', 'سعيد', 'سيد لطفي', 'Schematic', 770500.00, 'SAR', '2023-03-01', '2026-03-31', 25, 20, 2.5),\n(1, (SELECT id FROM appUsers WHERE name='سعيد' LIMIT 1), 'تصميم فلل البيان، شركة غدير الرياض', '3872', 'سعيد', NULL, 'CD', 573160.00, 'SAR', '2024-01-01', '2026-06-30', 40, 20, 2.5),\n(1, (SELECT id FROM appUsers WHERE name='السيد لطفي' LIMIT 1), 'سكن عمال العجيمي - حي المصفاة', '2429', 'السيد لطفي', 'وليد المبيض', 'CD', 57500.00, 'SAR', '2022-06-01', '2025-12-31', 60, 20, 2.5),\n(1, (SELECT id FROM appUsers WHERE name='محمد الهودلي' LIMIT 1), 'مشروع مبنى الذكاء الاصطناعي - جامعة الأمير نايف', '3681', 'محمد الهودلي', 'نورة الحمدان', 'Construction', 76693.50, 'SAR', '2023-09-01', '2025-09-30', 90, 20, 2.5),\n(1, (SELECT id FROM appUsers WHERE name='محمود يوسف' LIMIT 1), 'مشروع المزيني معارض سيارات', '3984', 'محمود يوسف', NULL, 'CD', 391299.00, 'SAR', '2024-03-01', '2026-09-30', 30, 20, 2.5),\n(1, (SELECT id FROM appUsers WHERE name='مصطفى صابر' LIMIT 1), 'مشروع الراجحي ضاحية الغروب، اتحاد الراجحي', '4130', 'مصطفى صابر', 'سيد لطفي', 'Tender', 491970.00, 'SAR', '2024-06-01', '2026-12-31', 65, 20, 2.5),\n(1, (SELECT id FROM appUsers WHERE name='وليد المبيض' LIMIT 1), 'مشروع سكن منزل', '4138', 'وليد المبيض', 'وليد المبيض', 'CD', 397267.50, 'SAR', '2024-07-01', '2026-06-30', 60, 20, 2.5);\n\nSELECT id, name, code, manager, totalContractValue FROM projects ORDER BY id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3GFQbUAg4PvgXYh.92d5e419220b --database eFfuN9v8AVB9nn8xTmwtHX --execute -- Get appUser IDs for assignment\n-- محمود يوسف, مصطفى صابر, سعيد, محمد الهودلي, وليد المبيض, السيد لطفي\n-- Insert 10 real projects from Excel\nINSERT INTO projects (userId, appUserId, name, code, manager, coordinator, phase, totalContractValue, currency, startDate, endDate, percentComplete, targetMargin, overheadMultiplier) VALUES\n(1, (SELECT id FROM appUsers WHERE name='محمود يوسف' LIMIT 1), 'مركز الملك عبد العزيز الإسلامي بجيبوتي', '495', 'محمود يوسف', 'سيد لطفي', 'CD', 745500.00, 'SAR', '2023-01-01', '2025-12-31', 75, 20, 2.5),\n(1, (SELECT id FROM appUsers WHERE name='مصطفى صابر' LIMIT 1), 'مشروع كندل المسار الرياضي', '3092', 'مصطفى صابر', 'سيد لطفي', 'Tender', 844100.00, 'SAR', '2023-06-01', '2025-12-31', 50, 20, 2.5),\n(1, (SELECT id FROM appUsers WHERE name='محمود يوسف' LIMIT 1), 'مشروع إسكان العويضة كومبلكس', '514', 'محمود يوسف', 'سيد لطفي', 'CD', 217350.00, 'SAR', '2022-09-01', '2025-06-30', 25, 20, 2.5),\n(1, (SELECT id FROM appUsers WHERE name='سعيد' LIMIT 1), 'كومباوند الدرعية - حلول فادن', '3274', 'سعيد', 'سيد لطفي', 'Schematic', 770500.00, 'SAR', '2023-03-01', '2026-03-31', 25, 20, 2.5),\n(1, (SELECT id FROM appUsers WHERE name='سعيد' LIMIT 1), 'تصميم فلل البيان، شركة غدير الرياض', '3872', 'سعيد', NULL, 'CD', 573160.00, 'SAR', '2024-01-01', '2026-06-30', 40, 20, 2.5),\n(1, (SELECT id FROM appUsers WHERE name='السيد لطفي' LIMIT 1), 'سكن عمال العجيمي - حي المصفاة', '2429', 'السيد لطفي', 'وليد المبيض', 'CD', 57500.00, 'SAR', '2022-06-01', '2025-12-31', 60, 20, 2.5),\n(1, (SELECT id FROM appUsers WHERE name='محمد الهودلي' LIMIT 1), 'مشروع مبنى الذكاء الاصطناعي - جامعة الأمير نايف', '3681', 'محمد الهودلي', 'نورة الحمدان', 'Construction', 76693.50, 'SAR', '2023-09-01', '2025-09-30', 90, 20, 2.5),\n(1, (SELECT id FROM appUsers WHERE name='محمود يوسف' LIMIT 1), 'مشروع المزيني معارض سيارات', '3984', 'محمود يوسف', NULL, 'CD', 391299.00, 'SAR', '2024-03-01', '2026-09-30', 30, 20, 2.5),\n(1, (SELECT id FROM appUsers WHERE name='مصطفى صابر' LIMIT 1), 'مشروع الراجحي ضاحية الغروب، اتحاد الراجحي', '4130', 'مصطفى صابر', 'سيد لطفي', 'Tender', 491970.00, 'SAR', '2024-06-01', '2026-12-31', 65, 20, 2.5),\n(1, (SELECT id FROM appUsers WHERE name='وليد المبيض' LIMIT 1), 'مشروع سكن منزل', '4138', 'وليد المبيض', 'وليد المبيض', 'CD', 397267.50, 'SAR', '2024-07-01', '2026-06-30', 60, 20, 2.5);\n\nSELECT id, name, code, manager, totalContractValue FROM projects ORDER BY id;",
+  "rows": [
+    {
+      "id": "60001",
+      "name": "مركز الملك عبد العزيز الإسلامي بجيبوتي",
+      "code": "495",
+      "manager": "محمود يوسف",
+      "totalContractValue": "745500.00"
+    },
+    {
+      "id": "60002",
+      "name": "مشروع كندل المسار الرياضي",
+      "code": "3092",
+      "manager": "مصطفى صابر",
+      "totalContractValue": "844100.00"
+    },
+    {
+      "id": "60003",
+      "name": "مشروع إسكان العويضة كومبلكس",
+      "code": "514",
+      "manager": "محمود يوسف",
+      "totalContractValue": "217350.00"
+    },
+    {
+      "id": "60004",
+      "name": "كومباوند الدرعية - حلول فادن",
+      "code": "3274",
+      "manager": "سعيد",
+      "totalContractValue": "770500.00"
+    },
+    {
+      "id": "60005",
+      "name": "تصميم فلل البيان، شركة غدير الرياض",
+      "code": "3872",
+      "manager": "سعيد",
+      "totalContractValue": "573160.00"
+    },
+    {
+      "id": "60006",
+      "name": "سكن عمال العجيمي - حي المصفاة",
+      "code": "2429",
+      "manager": "السيد لطفي",
+      "totalContractValue": "57500.00"
+    },
+    {
+      "id": "60007",
+      "name": "مشروع مبنى الذكاء الاصطناعي - جامعة الأمير نايف",
+      "code": "3681",
+      "manager": "محمد الهودلي",
+      "totalContractValue": "76693.50"
+    },
+    {
+      "id": "60008",
+      "name": "مشروع المزيني معارض سيارات",
+      "code": "3984",
+      "manager": "محمود يوسف",
+      "totalContractValue": "391299.00"
+    },
+    {
+      "id": "60009",
+      "name": "مشروع الراجحي ضاحية الغروب، اتحاد الراجحي",
+      "code": "4130",
+      "manager": "مصطفى صابر",
+      "totalContractValue": "491970.00"
+    },
+    {
+      "id": "60010",
+      "name": "مشروع سكن منزل",
+      "code": "4138",
+      "manager": "وليد المبيض",
+      "totalContractValue": "397267.50"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tcode\tmanager\ttotalContractValue\n60001\tمركز الملك عبد العزيز الإسلامي بجيبوتي\t495\tمحمود يوسف\t745500.00\n60002\tمشروع كندل المسار الرياضي\t3092\tمصطفى صابر\t844100.00\n60003\tمشروع إسكان العويضة كومبلكس\t514\tمحمود يوسف\t217350.00\n60004\tكومباوند الدرعية - حلول فادن\t3274\tسعيد\t770500.00\n60005\tتصميم فلل البيان، شركة غدير الرياض\t3872\tسعيد\t573160.00\n60006\tسكن عمال العجيمي - حي المصفاة\t2429\tالسيد لطفي\t57500.00\n60007\tمشروع مبنى الذكاء الاصطناعي - جامعة الأمير نايف\t3681\tمحمد الهودلي\t76693.50\n60008\tمشروع المزيني معارض سيارات\t3984\tمحمود يوسف\t391299.00\n60009\tمشروع الراجحي ضاحية الغروب، اتحاد الراجحي\t4130\tمصطفى صابر\t491970.00\n60010\tمشروع سكن منزل\t4138\tوليد المبيض\t397267.50\n",
+  "stderr": "",
+  "execution_time_ms": 1780
+}

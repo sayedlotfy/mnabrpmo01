@@ -1,0 +1,40 @@
+{
+  "query": "SELECT table_name FROM information_schema.tables WHERE table_schema = DATABASE();",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3GFQbUAg4PvgXYh.92d5e419220b --database eFfuN9v8AVB9nn8xTmwtHX --execute SELECT table_name FROM information_schema.tables WHERE table_schema = DATABASE();",
+  "rows": [
+    {
+      "table_name": "payments"
+    },
+    {
+      "table_name": "staff"
+    },
+    {
+      "table_name": "appUsers"
+    },
+    {
+      "table_name": "budgetLabor"
+    },
+    {
+      "table_name": "projects"
+    },
+    {
+      "table_name": "timeLogs"
+    },
+    {
+      "table_name": "__drizzle_migrations"
+    },
+    {
+      "table_name": "users"
+    },
+    {
+      "table_name": "budgetExpenses"
+    },
+    {
+      "table_name": "expenses"
+    }
+  ],
+  "messages": [],
+  "stdout": "table_name\npayments\nstaff\nappUsers\nbudgetLabor\nprojects\ntimeLogs\n__drizzle_migrations\nusers\nbudgetExpenses\nexpenses\n",
+  "stderr": "",
+  "execution_time_ms": 1477
+}
