@@ -43,6 +43,13 @@
       "when": 1773060626199,
       "tag": "0005_fearless_gorgon",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1773068303486,
+      "tag": "0006_perpetual_korg",
+      "breakpoints": true
     }
   ]
 }

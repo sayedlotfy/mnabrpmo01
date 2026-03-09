@@ -181,6 +181,24 @@ export function getHolidaysForYear(year: number): string[] {
 }
 
 /**
+ * Add N working days to a given start date, returning the new date as YYYY-MM-DD.
+ * Skips weekends (Fri/Sat) and Saudi public holidays.
+ * @param startStr YYYY-MM-DD base date
+ * @param days     Number of working days to add (positive integer)
+ */
+export function addWorkingDays(startStr: string, days: number): string {
+  if (days <= 0) return startStr;
+  const cur = new Date(startStr + "T00:00:00");
+  if (isNaN(cur.getTime())) return startStr;
+  let added = 0;
+  while (added < days) {
+    cur.setDate(cur.getDate() + 1);
+    if (isSaudiWorkingDay(cur)) added++;
+  }
+  return toISODate(cur);
+}
+
+/**
  * Get all holidays as a sorted array
  */
 export function getAllHolidays(): string[] {

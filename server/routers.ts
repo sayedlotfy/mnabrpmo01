@@ -386,6 +386,28 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         return await db.deleteProjectEvent(input.id);
       }),
+
+    extendEndDate: publicProcedure
+      .input(z.object({
+        projectId: z.number(),
+        pausedDays: z.number().min(1),
+        currentEndDate: z.string(),
+        recordedBy: z.string().optional().default("مجهول"),
+        today: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        const { addWorkingDays } = await import("../shared/workingDays.js");
+        const newEndDate = addWorkingDays(input.currentEndDate, input.pausedDays);
+        await db.updateProject(input.projectId, { endDate: newEndDate } as any);
+        await db.createProjectEvent({
+          projectId: input.projectId,
+          eventType: "extension",
+          eventDate: input.today,
+          reason: `تمديد تلقائي بـ ${input.pausedDays} يوم عمل بسبب أيام التوقف المتراكمة. تاريخ الانتهاء الجديد: ${newEndDate}`,
+          recordedBy: input.recordedBy,
+        });
+        return { newEndDate };
+      }),
   }),
 
   // ============ Portfolio (Portfolio Manager View) ============

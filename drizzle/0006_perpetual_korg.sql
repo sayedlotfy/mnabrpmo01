@@ -1,0 +1,1 @@
+ALTER TABLE `projectEvents` MODIFY COLUMN `eventType` enum('start','pause','resume','extension') NOT NULL;

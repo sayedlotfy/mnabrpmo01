@@ -171,7 +171,7 @@ export type InsertPayment = typeof payments.$inferInsert;
 export const projectEvents = mysqlTable("projectEvents", {
   id: int("id").autoincrement().primaryKey(),
   projectId: int("projectId").notNull(),
-  eventType: mysqlEnum("eventType", ["start", "pause", "resume"]).notNull(),
+  eventType: mysqlEnum("eventType", ["start", "pause", "resume", "extension"]).notNull(),
   eventDate: varchar("eventDate", { length: 10 }).notNull(), // YYYY-MM-DD
   reason: text("reason").notNull(), // mandatory reason
   recordedBy: varchar("recordedBy", { length: 255 }), // name of user who recorded

@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAppUser } from "@/contexts/AppUserContext";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Loader2, Plus, FolderOpen, Globe, LogOut, BarChart3, Calendar, TrendingUp, Bell, AlertTriangle } from "lucide-react";
+import { Loader2, Plus, FolderOpen, Globe, LogOut, BarChart3, Calendar, TrendingUp, Bell, AlertTriangle, Search, X } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import ThemeToggle from "@/components/ThemeToggle";
 import LastUpdatedBanner from "@/components/LastUpdatedBanner";
@@ -25,6 +25,7 @@ export default function ProjectsList() {
   const isAr = lang === "ar";
   const [showNotifications, setShowNotifications] = useState(false);
   const [readAlerts, setReadAlerts] = useState<Set<number>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
   const notifRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -48,9 +49,20 @@ export default function ProjectsList() {
     return list;
   }, []);
 
-  const visibleProjects = isPortfolioManager
+  const baseProjects = isPortfolioManager
     ? projects
     : projects?.filter(p => p.appUserId === currentUser?.id || p.appUserId === null);
+
+  const visibleProjects = useMemo(() => {
+    if (!searchQuery.trim()) return baseProjects;
+    const q = searchQuery.trim().toLowerCase();
+    return baseProjects?.filter(p =>
+      p.name.toLowerCase().includes(q) ||
+      (p.code || "").toLowerCase().includes(q) ||
+      (p.manager || "").toLowerCase().includes(q) ||
+      (p.coordinator || "").toLowerCase().includes(q)
+    );
+  }, [baseProjects, searchQuery]);
 
   const unreadCount = alerts.filter((_, i) => !readAlerts.has(i)).length;
 
@@ -176,24 +188,58 @@ export default function ProjectsList() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-bold" style={{ color: "var(--foreground)" }}>
-              {isAr ? "مشاريعي" : "My Projects"}
-            </h2>
-            <p className="text-sm mt-0.5 opacity-50">
-              {isAr ? `${visibleProjects?.length || 0} مشروع` : `${visibleProjects?.length || 0} projects`}
-            </p>
+        <div className="flex flex-col gap-4 mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold" style={{ color: "var(--foreground)" }}>
+                {isAr ? "مشاريعي" : "My Projects"}
+              </h2>
+              <p className="text-sm mt-0.5 opacity-50">
+                {searchQuery
+                  ? (isAr ? `${visibleProjects?.length || 0} نتيجة من ${baseProjects?.length || 0}` : `${visibleProjects?.length || 0} of ${baseProjects?.length || 0} projects`)
+                  : (isAr ? `${visibleProjects?.length || 0} مشروع` : `${visibleProjects?.length || 0} projects`)
+                }
+              </p>
+            </div>
+            <Link href="/projects/new">
+              <button className="flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-xl transition-all shadow-sm text-white"
+                style={{ background: "var(--primary)" }}
+                onMouseEnter={e => (e.currentTarget.style.opacity = "0.9")}
+                onMouseLeave={e => (e.currentTarget.style.opacity = "1")}>
+                <Plus className="w-4 h-4" />
+                {isAr ? "مشروع جديد" : "New Project"}
+              </button>
+            </Link>
           </div>
-          <Link href="/projects/new">
-            <button className="flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-xl transition-all shadow-sm text-white"
-              style={{ background: "var(--primary)" }}
-              onMouseEnter={e => (e.currentTarget.style.opacity = "0.9")}
-              onMouseLeave={e => (e.currentTarget.style.opacity = "1")}>
-              <Plus className="w-4 h-4" />
-              {isAr ? "مشروع جديد" : "New Project"}
-            </button>
-          </Link>
+
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute top-1/2 -translate-y-1/2 w-4 h-4 opacity-40"
+              style={{ [isAr ? "right" : "left"]: "12px" }} />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder={isAr ? "بحث بالاسم أو الكود أو المدير أو المدينة..." : "Search by name, code, manager or city..."}
+              className="w-full rounded-xl py-2.5 text-sm outline-none transition-all"
+              style={{
+                background: "var(--lg-glass-bg)",
+                border: "1px solid var(--lg-glass-border)",
+                color: "var(--foreground)",
+                paddingInlineStart: "38px",
+                paddingInlineEnd: searchQuery ? "38px" : "12px",
+              }}
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute top-1/2 -translate-y-1/2 opacity-40 hover:opacity-80 transition-opacity"
+                style={{ [isAr ? "left" : "right"]: "12px" }}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
 
         {isLoading ? (
