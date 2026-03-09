@@ -60,6 +60,17 @@ export const appRouter = router({
         return { success: true };
       }),
 
+    adminUpdatePin: publicProcedure
+      .input(z.object({
+        userId: z.number(),
+        newPin: z.string().length(4).regex(/^\d{4}$/),
+      }))
+      .mutation(async ({ input }) => {
+        // Portfolio manager can override any user's PIN without knowing current PIN
+        await db.updateAppUserPin(input.userId, input.newPin);
+        return { success: true };
+      }),
+
     delete: publicProcedure
       .input(z.object({ userId: z.number() }))
       .mutation(async ({ input }) => {

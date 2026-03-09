@@ -119,6 +119,13 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Noto Naskh Arabic', 'Times New Roman', serif;
+  }
+  :lang(ar), [dir="rtl"] {
+    font-family: 'Noto Naskh Arabic', 'Times New Roman', serif;
+  }
+  :lang(en), [dir="ltr"] {
+    font-family: 'Times New Roman', serif;
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -221,7 +228,64 @@
 
 /* Print styles */
 @media print {
-  .no-print {
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  body {
+    font-family: 'Noto Naskh Arabic', 'Times New Roman', serif !important;
+    font-size: 11pt;
+    line-height: 1.5;
+    color: #000 !important;
+    background: #fff !important;
+  }
+
+  [dir="rtl"], :lang(ar) {
+    font-family: 'Noto Naskh Arabic', 'Times New Roman', serif !important;
+    direction: rtl;
+    unicode-bidi: embed;
+  }
+
+  [dir="ltr"], :lang(en) {
+    font-family: 'Times New Roman', serif !important;
+    direction: ltr;
+  }
+
+  .no-print,
+  button,
+  nav,
+  .print-hide {
     display: none !important;
+  }
+
+  .print-show {
+    display: block !important;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  th, td {
+    border: 1px solid #ccc;
+    padding: 6px 8px;
+    font-family: 'Noto Naskh Arabic', 'Times New Roman', serif !important;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: 'Noto Naskh Arabic', 'Times New Roman', serif !important;
+    page-break-after: avoid;
+  }
+
+  .page-break {
+    page-break-before: always;
   }
 }
