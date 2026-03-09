@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAppUser } from "@/contexts/AppUserContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useLocation } from "wouter";
-import { Loader2, FolderPlus, ArrowRight, ArrowLeft } from "lucide-react";
+import { Loader2, FolderPlus, ArrowRight, ArrowLeft, User, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -12,10 +12,17 @@ const LOGO_URL = "https://static-assets.manus.space/files/webdev/design-pmo/logo
 const PHASES = ["Concept", "Schematic", "DD", "CD", "Tender", "Construction"];
 
 export default function CreateProject() {
-  const { currentUser } = useAppUser();
+  const { currentUser, isPortfolioManager } = useAppUser();
   const { lang } = useLanguage();
   const [, navigate] = useLocation();
   const isAr = lang === "ar";
+
+  // Load all app users for portfolio manager dropdown
+  const { data: appUsers } = trpc.appUsers.list.useQuery();
+  const projectManagers = (appUsers || []).filter(u => u.role === "project_manager");
+
+  // selectedManagerId: for portfolio manager to pick from dropdown
+  const [selectedManagerId, setSelectedManagerId] = useState<number | "">("" );
 
   const [form, setForm] = useState({
     name: "",
@@ -29,6 +36,26 @@ export default function CreateProject() {
     startDate: "",
     endDate: "",
   });
+
+  // Auto-fill manager name for project managers
+  useEffect(() => {
+    if (!isPortfolioManager && currentUser) {
+      setForm(prev => ({ ...prev, manager: currentUser.name }));
+    }
+  }, [currentUser, isPortfolioManager]);
+
+  // When portfolio manager selects a manager from dropdown, update form.manager
+  useEffect(() => {
+    if (isPortfolioManager && selectedManagerId !== "") {
+      const found = projectManagers.find(u => u.id === selectedManagerId);
+      if (found) setForm(prev => ({ ...prev, manager: found.name }));
+    }
+  }, [selectedManagerId]);
+
+  // appUserId to assign to the project
+  const assignedAppUserId = isPortfolioManager
+    ? (selectedManagerId !== "" ? selectedManagerId as number : undefined)
+    : currentUser?.id;
 
   const createProject = trpc.projects.create.useMutation({
     onSuccess: () => {
@@ -46,10 +73,14 @@ export default function CreateProject() {
       toast.error(isAr ? "يرجى ملء جميع الحقول المطلوبة" : "Please fill all required fields");
       return;
     }
+    if (isPortfolioManager && !selectedManagerId) {
+      toast.error(isAr ? "يرجى اختيار مدير المشروع" : "Please select a project manager");
+      return;
+    }
     createProject.mutate({
       ...form,
       phase: form.phase as any,
-      appUserId: currentUser?.id,
+      appUserId: assignedAppUserId,
     });
   };
 
@@ -94,21 +125,64 @@ export default function CreateProject() {
                   className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="e.g. MNB-2025-001" />
               </div>
+              {/* Project Manager - conditional rendering */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   {isAr ? "مدير المشروع" : "Project Manager"}
                 </label>
-                <input type="text" value={form.manager} onChange={(e) => setForm({ ...form, manager: e.target.value })}
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder={isAr ? "اسم المدير" : "Manager name"} />
+                {isPortfolioManager ? (
+                  /* Portfolio manager: dropdown to select from project managers */
+                  <div className="relative">
+                    <select
+                      value={selectedManagerId}
+                      onChange={(e) => setSelectedManagerId(e.target.value === "" ? "" : Number(e.target.value))}
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white appearance-none"
+                    >
+                      <option value="">{isAr ? "-- اختر مدير المشروع --" : "-- Select Project Manager --"}</option>
+                      {projectManagers.map(pm => (
+                        <option key={pm.id} value={pm.id}>
+                          {pm.name}{pm.nameEn ? ` · ${pm.nameEn}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className={`absolute top-2.5 ${isAr ? "left-2.5" : "right-2.5"} w-4 h-4 text-slate-400 pointer-events-none`} />
+                    {projectManagers.length === 0 && (
+                      <p className="text-xs text-amber-600 mt-1">
+                        {isAr ? "لا يوجد مدراء مشاريع مسجلون. أضف مهندسين أولاً من لوحة التحكم." : "No project managers found. Add engineers first from the dashboard."}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  /* Project manager: auto-filled, read-only */
+                  <div className="relative">
+                    <div className={`absolute top-2.5 ${isAr ? "right-3" : "left-3"} text-slate-400`}>
+                      <User className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="text"
+                      value={form.manager}
+                      readOnly
+                      className={`w-full border border-slate-100 rounded-lg ${isAr ? "pr-9 pl-3" : "pl-9 pr-3"} py-2 text-sm bg-slate-50 text-slate-600 cursor-not-allowed`}
+                    />
+                    <span className={`absolute top-2 ${isAr ? "left-2" : "right-2"} text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-medium`}>
+                      {isAr ? "تلقائي" : "Auto"}
+                    </span>
+                  </div>
+                )}
               </div>
+
+              {/* Project Coordinator - always text input */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   {isAr ? "منسق المشروع" : "Project Coordinator"}
                 </label>
-                <input type="text" value={form.coordinator} onChange={(e) => setForm({ ...form, coordinator: e.target.value })}
+                <input
+                  type="text"
+                  value={form.coordinator}
+                  onChange={(e) => setForm({ ...form, coordinator: e.target.value })}
                   className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder={isAr ? "اسم المنسق" : "Coordinator name"} />
+                  placeholder={isAr ? "اكتب اسم المنسق" : "Type coordinator name"}
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">

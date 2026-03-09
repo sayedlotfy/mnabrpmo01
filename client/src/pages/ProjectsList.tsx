@@ -1,7 +1,8 @@
+import { useState, useRef, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAppUser } from "@/contexts/AppUserContext";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Loader2, Plus, FolderOpen, Globe, LogOut, BarChart3, Calendar, TrendingUp } from "lucide-react";
+import { Loader2, Plus, FolderOpen, Globe, LogOut, BarChart3, Calendar, TrendingUp, Bell, AlertTriangle } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 const LOGO_URL = "https://static-assets.manus.space/files/webdev/design-pmo/logo.png";
@@ -20,8 +21,31 @@ export default function ProjectsList() {
   const { lang, toggleLanguage } = useLanguage();
   const [, navigate] = useLocation();
   const isAr = lang === "ar";
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [readAlerts, setReadAlerts] = useState<Set<number>>(new Set());
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const { data: projects, isLoading } = trpc.projects.list.useQuery();
+
+  // Build alerts from project data
+  const alerts = (projects || []).reduce((list: { type: "warning" | "error"; message: string; project: string }[], p) => {
+    const cpi = Number((p as any).cpi || 1);
+    const profit = Number((p as any).profitability || 0);
+    if (cpi < 0.8 && cpi > 0) list.push({ type: "error", message: `CPI منخفض: ${cpi.toFixed(2)}`, project: p.name });
+    else if (cpi < 0.9 && cpi > 0) list.push({ type: "warning", message: `CPI منخفض: ${cpi.toFixed(2)}`, project: p.name });
+    if (profit < 0) list.push({ type: "error", message: isAr ? "تجاوز الميزانية" : "Budget Overrun", project: p.name });
+    return list;
+  }, []);
 
   // Filter: portfolio manager sees all, project manager sees only their own
   const visibleProjects = isPortfolioManager
@@ -49,6 +73,81 @@ export default function ProjectsList() {
               <span className="hidden sm:inline">{isAr ? "لوحة المحفظة" : "Portfolio"}</span>
             </button>
           )}
+
+          {/* Notifications Bell */}
+          <div className="relative" ref={notifRef}>
+            <button
+              onClick={() => setShowNotifications(v => !v)}
+              className="relative flex items-center justify-center w-8 h-8 rounded-lg hover:bg-slate-700 transition-colors"
+              title={isAr ? "الإشعارات" : "Notifications"}
+            >
+              <Bell className="w-4 h-4 text-slate-300" />
+              {alerts.filter((_, i) => !readAlerts.has(i)).length > 0 && (
+                <span className="absolute -top-0.5 -end-0.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                  {alerts.filter((_, i) => !readAlerts.has(i)).length}
+                </span>
+              )}
+            </button>
+            {showNotifications && (
+              <div className={`absolute top-10 ${isAr ? "left-0" : "right-0"} w-80 bg-white rounded-xl shadow-2xl border border-slate-100 z-50 overflow-hidden`}>
+                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+                  <h3 className="font-semibold text-slate-800 text-sm flex items-center gap-2">
+                    <Bell className="w-4 h-4 text-amber-500" />
+                    {isAr ? "الإشعارات" : "Notifications"}
+                    {alerts.length > 0 && (
+                      <span className="bg-red-100 text-red-600 text-xs px-1.5 py-0.5 rounded-full font-medium">{alerts.length}</span>
+                    )}
+                  </h3>
+                  {alerts.length > 0 && (
+                    <button
+                      onClick={() => setReadAlerts(new Set(alerts.map((_, i) => i)))}
+                      className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
+                    >
+                      {isAr ? "تعليم الكل كمقروء" : "Mark all read"}
+                    </button>
+                  )}
+                </div>
+                <div className="max-h-72 overflow-y-auto">
+                  {alerts.length === 0 ? (
+                    <div className="py-8 text-center">
+                      <Bell className="w-8 h-8 text-slate-200 mx-auto mb-2" />
+                      <p className="text-sm text-slate-400">{isAr ? "لا توجد تنبيهات حالياً" : "No alerts at this time"}</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-50">
+                      {alerts.map((a, i) => (
+                        <div
+                          key={i}
+                          onClick={() => setReadAlerts(prev => { const s = new Set(Array.from(prev)); s.add(i); return s; })}
+                          className={`flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors ${
+                            readAlerts.has(i) ? "bg-white" : a.type === "error" ? "bg-red-50" : "bg-amber-50"
+                          } hover:bg-slate-50`}
+                        >
+                          <AlertTriangle className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
+                            a.type === "error" ? "text-red-500" : "text-amber-500"
+                          }`} />
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-xs font-semibold truncate ${
+                              readAlerts.has(i) ? "text-slate-500" : a.type === "error" ? "text-red-700" : "text-amber-700"
+                            }`}>{a.project}</p>
+                            <p className={`text-xs mt-0.5 ${
+                              readAlerts.has(i) ? "text-slate-400" : a.type === "error" ? "text-red-600" : "text-amber-600"
+                            }`}>{a.message}</p>
+                          </div>
+                          {!readAlerts.has(i) && (
+                            <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
+                              a.type === "error" ? "bg-red-500" : "bg-amber-500"
+                            }`} />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           <button onClick={toggleLanguage}
             className="flex items-center gap-1 text-xs text-slate-300 hover:text-white transition-colors">
             <Globe className="w-3.5 h-3.5" />

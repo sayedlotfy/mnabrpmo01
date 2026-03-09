@@ -239,23 +239,60 @@
     color-adjust: exact !important;
   }
 
+  /*
+   * FIX: Arabic text word-order reversal in print.
+   * Root cause: unicode-bidi:embed only wraps the element in a bidi
+   * embedding level but does NOT force the browser's print renderer to
+   * honour the logical order of Arabic runs.  The correct fix is to
+   * set direction:rtl on the root print context AND use
+   * unicode-bidi:plaintext on every text-bearing element so the
+   * Unicode Bidirectional Algorithm resolves each paragraph
+   * independently from its own base direction.
+   */
+  html[dir="rtl"],
+  html:lang(ar) {
+    direction: rtl !important;
+    unicode-bidi: plaintext !important;
+  }
+
   body {
     font-family: 'Noto Naskh Arabic', 'Times New Roman', serif !important;
     font-size: 11pt;
     line-height: 1.5;
     color: #000 !important;
     background: #fff !important;
+    direction: rtl !important;
+    unicode-bidi: plaintext !important;
+    text-align: right !important;
   }
 
-  [dir="rtl"], :lang(ar) {
+  /* All elements inside RTL context get plaintext bidi so each
+     paragraph's base direction is auto-detected from its first strong
+     character — this is the most robust approach for mixed AR/EN. */
+  [dir="rtl"] *,
+  [dir="rtl"] p,
+  [dir="rtl"] span,
+  [dir="rtl"] td,
+  [dir="rtl"] th,
+  [dir="rtl"] li,
+  [dir="rtl"] div {
+    unicode-bidi: plaintext !important;
+    direction: rtl !important;
     font-family: 'Noto Naskh Arabic', 'Times New Roman', serif !important;
-    direction: rtl;
-    unicode-bidi: embed;
   }
 
-  [dir="ltr"], :lang(en) {
+  /* Numbers and English fragments inside Arabic text stay LTR */
+  [dir="rtl"] .ltr-value,
+  [dir="rtl"] .en-text {
+    direction: ltr !important;
+    unicode-bidi: embed !important;
+    display: inline-block;
+  }
+
+  [dir="ltr"] {
+    direction: ltr !important;
+    unicode-bidi: plaintext !important;
     font-family: 'Times New Roman', serif !important;
-    direction: ltr;
   }
 
   .no-print,
@@ -278,11 +315,13 @@
     border: 1px solid #ccc;
     padding: 6px 8px;
     font-family: 'Noto Naskh Arabic', 'Times New Roman', serif !important;
+    unicode-bidi: plaintext !important;
   }
 
   h1, h2, h3, h4 {
     font-family: 'Noto Naskh Arabic', 'Times New Roman', serif !important;
     page-break-after: avoid;
+    unicode-bidi: plaintext !important;
   }
 
   .page-break {
