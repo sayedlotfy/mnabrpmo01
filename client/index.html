@@ -9,13 +9,32 @@
     <title>Design PMO - نظام إدارة مشاريع التصميم</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <!-- IBM Plex Arabic: واجهة العربية -->
+    <!-- IBM Plex Sans: واجهة الإنجليزية -->
+    <!-- Scheherazade New: الطباعة والـ PDF -->
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Scheherazade+New:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <style>
-      /* Ensure Arabic fonts load before render for print support */
-      html { font-family: 'Noto Naskh Arabic', 'Noto Sans Arabic', 'Times New Roman', Arial, sans-serif; }
+      /* Base font before React loads */
+      html {
+        font-family: 'IBM Plex Arabic', 'IBM Plex Sans', sans-serif;
+        /* Force Latin numerals (0-9) always — prevents Arabic-Indic digits */
+        font-variant-numeric: lining-nums tabular-nums;
+        -moz-font-feature-settings: "lnum" 1, "tnum" 1;
+        -webkit-font-feature-settings: "lnum" 1, "tnum" 1;
+        font-feature-settings: "lnum" 1, "tnum" 1;
+      }
       @media print {
         * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        html, body { font-family: 'Noto Naskh Arabic', 'Noto Sans Arabic', 'Times New Roman', Arial, sans-serif !important; }
+        html, body {
+          font-family: 'Scheherazade New', 'IBM Plex Arabic', 'IBM Plex Sans', sans-serif !important;
+          direction: rtl !important;
+          unicode-bidi: plaintext !important;
+        }
+        /* Force Latin numerals in print too */
+        * {
+          font-variant-numeric: lining-nums tabular-nums !important;
+          font-feature-settings: "lnum" 1, "tnum" 1 !important;
+        }
       }
     </style>
   </head>

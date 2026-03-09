@@ -396,42 +396,52 @@ export default function ProjectDetail() {
           </div>
         </Card>
 
-        {/* Stoppage Widget */}
-        <Card className={`w-full md:w-80 border-2 p-4 ${isProjectPaused ? 'border-rose-200 bg-rose-50' : 'border-emerald-200 bg-emerald-50'}`}>
-          <div className="flex flex-col h-full justify-between">
-            <div>
-              <h3 className={`font-bold flex items-center gap-2 ${isProjectPaused ? 'text-rose-900' : 'text-emerald-900'}`}>
-                {isProjectPaused ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-                {t.projectStatus}: {isProjectPaused ? t.statusPaused : t.statusActive}
-              </h3>
-              <div className="text-center my-4">
-                <span className="text-xs text-muted-foreground block mb-1">{t.daysCount}</span>
-                <div className="text-4xl font-mono font-bold tracking-widest">{financials.stoppageDays}</div>
-              </div>
+        {/* Project Status Badge — full controls in Timeline tab */}
+        <Card className={`w-full md:w-56 border-2 p-4 flex flex-col items-center justify-center gap-3`}
+          style={{
+            borderColor: (project?.isPaused) ? 'oklch(0.75 0.15 20)' : 'oklch(0.75 0.15 145)',
+            background: (project?.isPaused) ? 'oklch(0.97 0.01 20)' : 'oklch(0.97 0.01 145)'
+          }}>
+          <div className="w-14 h-14 rounded-full flex items-center justify-center"
+            style={{ background: (project?.isPaused) ? 'oklch(0.92 0.04 20)' : 'oklch(0.92 0.04 145)' }}>
+            {(project?.isPaused)
+              ? <Pause className="w-7 h-7" style={{ color: 'oklch(0.55 0.18 20)' }} />
+              : <Play className="w-7 h-7" style={{ color: 'oklch(0.45 0.18 145)' }} />}
+          </div>
+          <div className="text-center">
+            <div className="font-bold text-sm"
+              style={{ color: (project?.isPaused) ? 'oklch(0.45 0.18 20)' : 'oklch(0.35 0.18 145)' }}>
+              {(project?.isPaused) ? t.statusPaused : t.statusActive}
             </div>
-            <div className="space-y-2">
-              <Button variant={isProjectPaused ? "default" : "destructive"} className="w-full justify-center"
-                onClick={() => setIsProjectPaused(!isProjectPaused)}>
-                {isProjectPaused ? <><Play className="w-4 h-4 mr-1" />{t.resumeProject}</> : <><Pause className="w-4 h-4 mr-1" />{t.pauseProject}</>}
-              </Button>
+            {(project?.stoppageDays ?? 0) > 0 && (
+              <div className="text-2xl font-mono font-bold mt-1"
+                style={{ color: 'oklch(0.55 0.18 20)' }}>
+                {project?.stoppageDays}
+                <span className="text-xs font-normal ms-1" style={{ color: 'var(--muted-foreground)' }}>
+                  {t.stoppageDays}
+                </span>
+              </div>
+            )}
+            <div className="text-xs mt-2 opacity-60" style={{ color: 'var(--muted-foreground)' }}>
+              {lang === 'ar' ? '← تاب سجل المدة' : 'Timeline tab →'}
             </div>
           </div>
         </Card>
       </div>
 
-      {/* Stoppage Alert */}
-      {financials.stoppageDays > 0 && (
-        <Card className="bg-rose-50 border-rose-200 p-4">
+      {/* Stoppage Financial Impact Alert */}
+      {(project?.isPaused || (project?.stoppageDays ?? 0) > 0) && (
+        <Card className="p-4" style={{ background: 'oklch(0.97 0.01 20)', border: '1px solid oklch(0.85 0.05 20)' }}>
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <AlertTriangle className="w-6 h-6 text-rose-600" />
+              <AlertTriangle className="w-6 h-6" style={{ color: '#ef4444' }} />
               <div>
                 <h4 className="font-bold text-sm">{t.stoppageAnalysis}</h4>
                 <p className="text-xs mt-0.5 opacity-80">{t.stoppageDesc}</p>
               </div>
             </div>
             <div className="text-right">
-              <span className="block text-xl font-bold text-rose-600">-{fmtMoney(financials.stoppageLoss)}</span>
+              <span className="block text-xl font-bold" style={{ color: '#ef4444' }}>-{fmtMoney(financials.stoppageLoss)}</span>
               <span className="text-xs">{financials.stoppageDays} {t.stoppageDays}</span>
             </div>
           </div>
