@@ -128,7 +128,8 @@ function toHijriDate(dateStr: string, lang: string): string {
 function toGregorianDate(dateStr: string, lang: string): string {
   try {
     const date = new Date(dateStr + "T00:00:00");
-    return date.toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', {
+    // Always use en-US for PDF to ensure Latin digits
+    return date.toLocaleDateString('en-US', {
       year: 'numeric', month: 'long', day: 'numeric'
     });
   } catch { return dateStr; }
@@ -211,7 +212,7 @@ async function exportDurationLogPDF(opts: {
     margin + 4, y + 8, 10, true, [15,23,42]);
   txt(isAr ? `الكود: ${opts.projectCode}` : `Code: ${opts.projectCode}`,
     margin + 4, y + 15, 8, false, [71,85,105]);
-  txt(isAr ? `تاريخ التقرير: ${new Date().toLocaleDateString('ar-SA')}` : `Report Date: ${new Date().toLocaleDateString('en-US')}`,
+  txt(isAr ? `تاريخ التقرير: ${new Date().toLocaleDateString('en-US')}` : `Report Date: ${new Date().toLocaleDateString('en-US')}`,
     pageW - margin - 4, y + 8, 8, false, [71,85,105], "right");
   y += 28;
 

@@ -60,22 +60,37 @@ async function loadAmiriFont(): Promise<string | null> {
   }
 }
 
-// Reshape Arabic text for correct rendering in jsPDF
-// jsPDF doesn't support RTL/Arabic shaping natively, so we reverse the string
-// and rely on the Amiri font for correct glyph rendering
+// Fix Arabic text for jsPDF: reverse word order for RTL rendering
+// Also converts Arabic-Indic digits (٠١٢٣٤٥٦٧٨٩) to Latin (0123456789)
+function toLatinDigits(str: string): string {
+  return str
+    .replace(/[\u0660-\u0669]/g, d => String(d.charCodeAt(0) - 0x0660)) // Arabic-Indic
+    .replace(/[\u06F0-\u06F9]/g, d => String(d.charCodeAt(0) - 0x06F0)); // Extended Arabic-Indic
+}
+
 function prepareArabicText(text: string): string {
   if (!text) return "";
-  const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(text);
-  if (!hasArabic) return text;
-  // Reverse words (not chars) for RTL display in jsPDF
-  return text.split(" ").reverse().join(" ");
+  // Always convert Arabic-Indic digits to Latin first
+  const latinized = toLatinDigits(text);
+  const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(latinized);
+  if (!hasArabic) return latinized;
+  // Split into tokens (words + numbers/symbols), reverse only Arabic word segments
+  // Strategy: split by whitespace, reverse the array, rejoin
+  // This handles RTL rendering in jsPDF which renders LTR internally
+  const words = latinized.split(" ");
+  // Reverse only if there are Arabic words (not purely numeric/latin tokens)
+  const hasArabicWords = words.some(w => /[\u0600-\u06FF]/.test(w));
+  if (!hasArabicWords) return latinized;
+  return words.reverse().join(" ");
 }
 
 function fmt(n: number, currency = "SAR") {
+  // Always use en-US to get Latin digits
   return `${n.toLocaleString("en-US", { maximumFractionDigits: 0 })} ${currency}`;
 }
 
-function fmtAr(n: number, currency = "ر.س") {
+function fmtAr(n: number, currency = "\u0631.س") {
+  // Always use en-US to get Latin digits (not Arabic-Indic)
   return `${n.toLocaleString("en-US", { maximumFractionDigits: 0 })} ${currency}`;
 }
 
@@ -146,7 +161,7 @@ export async function exportProjectPDF(data: ProjectReportData) {
   doc.setFontSize(8);
   doc.setTextColor(148, 163, 184);
   doc.text("Design PMO · Project Financial Report", margin, 17);
-  doc.text(prepareArabicText(`نظام إدارة مشاريع التصميم | ${new Date().toLocaleDateString("ar-SA")}`), pageW - margin, 17, { align: "right" });
+  doc.text(prepareArabicText(`نظام إدارة مشاريع التصميم | ${new Date().toLocaleDateString("en-US")}`), pageW - margin, 17, { align: "right" });
   // Divider line
   doc.setDrawColor(30, 64, 175);
   doc.setLineWidth(1.5);
@@ -471,7 +486,7 @@ export async function exportClaimsPDF(
     doc.text(prepareArabicText("المنابر للاستشارات الهندسية"), pageW - margin, 10, { align: "right" });
     doc.setFontSize(9);
     doc.setTextColor(148, 163, 184);
-    doc.text(prepareArabicText(`كشف المطالبات المستحقة الإصدار | ${new Date().toLocaleDateString("ar-SA")}`), pageW - margin, 18, { align: "right" });
+    doc.text(prepareArabicText(`كشف المطالبات المستحقة الإصدار | ${new Date().toLocaleDateString("en-US")}`), pageW - margin, 18, { align: "right" });
   } else {
     doc.text("Al Mnabr Engineering Consultants", margin, 10);
     doc.setFontSize(9);
@@ -626,7 +641,7 @@ export async function exportDebtsPDF(
     doc.text(prepareArabicText("المنابر للاستشارات الهندسية"), pageW - margin, 10, { align: "right" });
     doc.setFontSize(9);
     doc.setTextColor(148, 163, 184);
-    doc.text(prepareArabicText(`كشف المديونيات - الفواتير غير المسددة | ${new Date().toLocaleDateString("ar-SA")}`), pageW - margin, 18, { align: "right" });
+    doc.text(prepareArabicText(`كشف المديونيات - الفواتير غير المسددة | ${new Date().toLocaleDateString("en-US")}`), pageW - margin, 18, { align: "right" });
   } else {
     doc.text("Al Mnabr Engineering Consultants", margin, 10);
     doc.setFontSize(9);
