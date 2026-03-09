@@ -1,20 +1,20 @@
-import { Toaster } from '@/components/ui/sonner';
-import { TooltipProvider } from '@/components/ui/tooltip';
-import NotFound from '@/pages/NotFound';
-import { Route, Switch, Router } from 'wouter';
-import ErrorBoundary from './components/ErrorBoundary';
-import { ThemeProvider } from './contexts/ThemeContext';
-import { LanguageProvider } from './contexts/LanguageContext';
-import ProjectDetail from './pages/ProjectDetail';
-import ProjectsList from './pages/ProjectsList';
+import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import NotFound from "@/pages/NotFound";
+import { Route, Switch, Redirect } from "wouter";
+import ErrorBoundary from "./components/ErrorBoundary";
+import { ThemeProvider } from "./contexts/ThemeContext";
+import { LanguageProvider } from "./contexts/LanguageContext";
+import ProjectDetail from "./pages/ProjectDetail";
 
-function RouterContent() {
+function Router() {
   return (
     <Switch>
-      <Route path="/" component={ProjectsList} />
-      <Route path="/projects" component={ProjectsList} />
-      <Route path="/projects/:id" component={ProjectDetail} />
-      <Route path="/404" component={NotFound} />
+      <Route path={"/"}>
+        <Redirect to="/projects/1" />
+      </Route>
+      <Route path={"/projects/:id"} component={ProjectDetail} />
+      <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -23,13 +23,11 @@ function RouterContent() {
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider defaultTheme="dark">
+      <ThemeProvider defaultTheme="light">
         <LanguageProvider>
           <TooltipProvider>
             <Toaster />
-            <Router base="/mnabrpmo01">
-              <RouterContent />
-            </Router>
+            <Router />
           </TooltipProvider>
         </LanguageProvider>
       </ThemeProvider>
