@@ -17,11 +17,69 @@ export const appRouter = router({
     }),
   }),
 
+  // ============ App Users (PIN System) ============
+  appUsers: router({
+    list: publicProcedure.query(async () => {
+      return await db.getAllAppUsers();
+    }),
+
+    create: publicProcedure
+      .input(z.object({
+        name: z.string().min(1),
+        nameEn: z.string().optional(),
+        role: z.enum(["portfolio_manager", "project_manager"]),
+        pin: z.string().length(4).regex(/^\d{4}$/),
+      }))
+      .mutation(async ({ input }) => {
+        await db.createAppUser(input);
+        return { success: true };
+      }),
+
+    verifyPin: publicProcedure
+      .input(z.object({
+        userId: z.number(),
+        pin: z.string().length(4).regex(/^\d{4}$/),
+      }))
+      .mutation(async ({ input }) => {
+        const valid = await db.verifyAppUserPin(input.userId, input.pin);
+        if (!valid) throw new Error("Invalid PIN");
+        const user = await db.getAppUserById(input.userId);
+        return { success: true, user };
+      }),
+
+    updatePin: publicProcedure
+      .input(z.object({
+        userId: z.number(),
+        currentPin: z.string().length(4).regex(/^\d{4}$/),
+        newPin: z.string().length(4).regex(/^\d{4}$/),
+      }))
+      .mutation(async ({ input }) => {
+        const valid = await db.verifyAppUserPin(input.userId, input.currentPin);
+        if (!valid) throw new Error("Invalid current PIN");
+        await db.updateAppUserPin(input.userId, input.newPin);
+        return { success: true };
+      }),
+
+    delete: publicProcedure
+      .input(z.object({ userId: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.deleteAppUser(input.userId);
+        return { success: true };
+      }),
+  }),
+
   // ============ Projects ============
   projects: router({
-    list: publicProcedure.query(async () => {
-      return await db.getAllProjects();
-    }),
+    list: publicProcedure
+      .input(z.object({
+        appUserId: z.number().optional(),
+      }).optional())
+      .query(async ({ input }) => {
+        if (input?.appUserId) {
+          return await db.getProjectsByAppUser(input.appUserId);
+        }
+        return await db.getAllProjects();
+      }),
 
     get: publicProcedure
       .input(z.object({ id: z.number() }))
@@ -31,22 +89,38 @@ export const appRouter = router({
 
     create: publicProcedure
       .input(z.object({
-        name: z.string(),
-        code: z.string(),
+        name: z.string().min(1),
+        code: z.string().min(1),
         manager: z.string().optional(),
         coordinator: z.string().optional(),
-        totalContractValue: z.string(),
+        phase: z.enum(["Concept", "Schematic", "DD", "CD", "Tender", "Construction"]).default("Concept"),
         overheadMultiplier: z.string().default("2.5"),
         targetMargin: z.string().default("20"),
         currency: z.string().default("SAR"),
         startDate: z.string(),
         endDate: z.string(),
+        appUserId: z.number().optional(),
       }))
       .mutation(async ({ input }) => {
-        return await db.createProject({
-          ...input,
+        await db.createProject({
           userId: 1,
+          appUserId: input.appUserId ?? null,
+          name: input.name,
+          code: input.code,
+          manager: input.manager,
+          coordinator: input.coordinator,
+          phase: input.phase,
+          totalContractValue: "0",
+          overheadMultiplier: input.overheadMultiplier,
+          targetMargin: input.targetMargin,
+          currency: input.currency,
+          startDate: input.startDate,
+          endDate: input.endDate,
+          stoppageDays: 0,
+          percentComplete: "0",
+          isPaused: false,
         });
+        return { success: true };
       }),
 
     update: publicProcedure
@@ -56,7 +130,7 @@ export const appRouter = router({
         code: z.string().optional(),
         manager: z.string().optional(),
         coordinator: z.string().optional(),
-        totalContractValue: z.string().optional(),
+        phase: z.enum(["Concept", "Schematic", "DD", "CD", "Tender", "Construction"]).optional(),
         overheadMultiplier: z.string().optional(),
         targetMargin: z.string().optional(),
         currency: z.string().optional(),
@@ -65,11 +139,12 @@ export const appRouter = router({
         stoppageDays: z.number().optional(),
         percentComplete: z.string().optional(),
         isPaused: z.boolean().optional(),
-        pauseStartDate: z.string().optional(),
+        pauseStartDate: z.string().nullable().optional(),
+        appUserId: z.number().nullable().optional(),
       }))
       .mutation(async ({ input }) => {
         const { id, ...data } = input;
-        return await db.updateProject(id, data);
+        return await db.updateProject(id, data as any);
       }),
 
     delete: publicProcedure
@@ -213,6 +288,7 @@ export const appRouter = router({
   }),
 
   // ============ Payments ============
+  // totalContractValue is auto-recalculated after every create/delete
   payments: router({
     list: publicProcedure
       .input(z.object({ projectId: z.number() }))
@@ -223,15 +299,33 @@ export const appRouter = router({
     create: publicProcedure
       .input(z.object({
         projectId: z.number(),
-        title: z.string(),
+        title: z.string().min(1),
         type: z.enum(["Contract", "VO"]).default("Contract"),
         amount: z.string(),
         date: z.string(),
         requirements: z.string().optional(),
         status: z.enum(["Pending", "Due", "Claimed", "Invoiced", "PaidPartial", "PaidFull"]).default("Pending"),
+        paidAmount: z.string().default("0"),
       }))
       .mutation(async ({ input }) => {
-        return await db.createPayment(input);
+        await db.createPayment(input); // auto-recalcs contract value
+        return { success: true };
+      }),
+
+    update: publicProcedure
+      .input(z.object({
+        id: z.number(),
+        title: z.string().optional(),
+        type: z.enum(["Contract", "VO"]).optional(),
+        amount: z.string().optional(),
+        date: z.string().optional(),
+        requirements: z.string().optional(),
+        status: z.enum(["Pending", "Due", "Claimed", "Invoiced", "PaidPartial", "PaidFull"]).optional(),
+        paidAmount: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        return await db.updatePayment(id, data as any);
       }),
 
     updateStatus: publicProcedure
@@ -242,75 +336,38 @@ export const appRouter = router({
       }))
       .mutation(async ({ input }) => {
         const { id, ...data } = input;
-        return await db.updatePayment(id, data);
+        return await db.updatePayment(id, data as any);
       }),
 
     delete: publicProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
-        return await db.deletePayment(input.id);
+        return await db.deletePayment(input.id); // auto-recalcs contract value
       }),
+  }),
+
+  // ============ Portfolio (Portfolio Manager View) ============
+  portfolio: router({
+    summary: publicProcedure.query(async () => {
+      return await db.getPortfolioSummary();
+    }),
   }),
 
   // ============ AI Integration ============
   ai: router({
     generateReport: publicProcedure
-      .input(z.object({
-        projectData: z.string(),
-      }))
+      .input(z.object({ projectData: z.string() }))
       .mutation(async ({ input }) => {
         try {
-          const prompt = `أنت مستشار مالي متخصص في إدارة مشاريع التصميم المعماري. قم بتحليل البيانات التالية وإنشاء تقرير شامل باللغة العربية يتضمن:
-1. تحليل الأداء المالي الحالي
-2. مؤشرات القيمة المكتسبة (EVM)
-3. التوصيات لتحسين الربحية
-4. تحذيرات من المخاطر المالية
-
-البيانات:
-${input.projectData}
-
-قدم التقرير بشكل منظم ومهني.`;
-
           const response = await invokeLLM({
             messages: [
               { role: "system", content: "أنت مستشار مالي متخصص في إدارة مشاريع التصميم المعماري." },
-              { role: "user", content: prompt }
+              { role: "user", content: `قم بتحليل البيانات التالية وإنشاء تقرير مالي شامل:\n${input.projectData}` }
             ],
           });
-
-          return {
-            report: response.choices[0]?.message?.content || "فشل في توليد التقرير",
-          };
+          return { report: response.choices[0]?.message?.content || "فشل في توليد التقرير" };
         } catch (error) {
-          console.error("AI Report Generation Error:", error);
           throw new Error("فشل في توليد التقرير. يرجى المحاولة مرة أخرى.");
-        }
-      }),
-
-    categorizeExpense: publicProcedure
-      .input(z.object({
-        description: z.string(),
-      }))
-      .mutation(async ({ input }) => {
-        try {
-          const prompt = `صنف المصروف التالي إلى إحدى الفئات: Sub-Consultant, Travel, Printing, Materials, Others
-          
-المصروف: ${input.description}
-
-أجب بكلمة واحدة فقط (الفئة).`;
-
-          const response = await invokeLLM({
-            messages: [
-              { role: "user", content: prompt }
-            ],
-          });
-
-          const content = response.choices[0]?.message?.content;
-          const category = typeof content === 'string' ? content.trim() : "Others";
-          return { category };
-        } catch (error) {
-          console.error("AI Categorization Error:", error);
-          return { category: "Others" };
         }
       }),
   }),

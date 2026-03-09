@@ -9,6 +9,9 @@ import {
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useRoute, Link } from "wouter";
+import { useAppUser } from "@/contexts/AppUserContext";
+import { exportProjectPDF } from "@/lib/exportPdf";
+import { FileDown } from "lucide-react";
 
 // ---- Helper Components ----
 function MetricCard({ title, value, subtext, trend, icon: Icon, indicatorColor }: {
@@ -51,9 +54,13 @@ function Badge({ children, type = "neutral" }: { children: React.ReactNode; type
 
 // ---- Main Component ----
 export default function ProjectDetail() {
-  const [, params] = useRoute("/projects/:id");
-  const projectId = params?.id ? parseInt(params.id) : 0;
+  const [matchProjects, paramsProjects] = useRoute("/projects/:id");
+  const [matchProject, paramsProject] = useRoute("/project/:id");
+  const rawId = paramsProject?.id || paramsProjects?.id;
+  const projectId = rawId ? parseInt(rawId) : 0;
   const { lang, toggleLanguage, isRTL, t } = useLanguage();
+  const { isPortfolioManager, currentUser } = useAppUser();
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
   const utils = trpc.useUtils();
 
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -98,7 +105,7 @@ export default function ProjectDetail() {
   const deletePayment = trpc.payments.delete.useMutation({ onSuccess: () => utils.payments.list.invalidate({ projectId }) });
   const updatePaymentStatus = trpc.payments.updateStatus.useMutation({ onSuccess: () => utils.payments.list.invalidate({ projectId }) });
   const updateProject = trpc.projects.update.useMutation({ onSuccess: () => utils.projects.get.invalidate({ id: projectId }) });
-  const categorizeExpense = trpc.ai.categorizeExpense.useMutation();
+  // categorizeExpense removed - AI auto-categorize not available in current API
 
   // ---- Input States ----
   const [newStaffForm, setNewStaffForm] = useState({ name: "", role: "", baseRate: "", location: "Cairo" as "Cairo" | "Riyadh" });
@@ -111,7 +118,7 @@ export default function ProjectDetail() {
   // ---- Settings State ----
   const [settingsForm, setSettingsForm] = useState<null | {
     name: string; code: string; manager: string; coordinator: string;
-    totalContractValue: string; overheadMultiplier: string; targetMargin: string;
+    overheadMultiplier: string; targetMargin: string;
     startDate: string; endDate: string; stoppageDays: number;
   }>(null);
 
@@ -122,7 +129,6 @@ export default function ProjectDetail() {
       code: project.code,
       manager: project.manager || "",
       coordinator: project.coordinator || "",
-      totalContractValue: project.totalContractValue,
       overheadMultiplier: project.overheadMultiplier,
       targetMargin: project.targetMargin,
       startDate: project.startDate,
@@ -138,7 +144,6 @@ export default function ProjectDetail() {
   const financials = useMemo(() => {
     if (!project) return null;
     const ps = settingsForm || {
-      totalContractValue: project.totalContractValue,
       overheadMultiplier: project.overheadMultiplier,
       targetMargin: project.targetMargin,
       startDate: project.startDate,
@@ -146,7 +151,7 @@ export default function ProjectDetail() {
       stoppageDays: project.stoppageDays,
     };
 
-    const totalContractValue = Number(ps.totalContractValue);
+    const totalContractValue = Number(project.totalContractValue);
     const overheadMultiplier = Number(ps.overheadMultiplier);
     const targetMarginPct = Number(ps.targetMargin);
     const stoppageDays = ps.stoppageDays;
@@ -279,11 +284,8 @@ export default function ProjectDetail() {
   };
 
   const handleAutoCategorize = async () => {
-    if (!newExpenseForm.desc) return;
-    const result = await categorizeExpense.mutateAsync({ description: newExpenseForm.desc });
-    if (result.category) {
-      setNewExpenseForm(prev => ({ ...prev, category: result.category }));
-    }
+    // Auto-categorize is not available without AI integration
+    // Just a placeholder for now
   };
 
   const handleSaveSettings = () => {
@@ -294,7 +296,6 @@ export default function ProjectDetail() {
       code: settingsForm.code,
       manager: settingsForm.manager,
       coordinator: settingsForm.coordinator,
-      totalContractValue: settingsForm.totalContractValue,
       overheadMultiplier: settingsForm.overheadMultiplier,
       targetMargin: settingsForm.targetMargin,
       startDate: settingsForm.startDate,
@@ -672,8 +673,8 @@ export default function ProjectDetail() {
                   onChange={(e) => setNewExpenseForm({ ...newExpenseForm, desc: e.target.value })}
                   placeholder={lang === 'ar' ? 'اكتب الوصف ثم اضغط التصنيف التلقائي...' : 'e.g. Flight to Dubai...'} />
                 <Button variant="outline" onClick={handleAutoCategorize}
-                  disabled={categorizeExpense.isPending || !newExpenseForm.desc} className="whitespace-nowrap px-3">
-                  {categorizeExpense.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  disabled={!newExpenseForm.desc} className="whitespace-nowrap px-3">
+                  <Sparkles className="w-4 h-4" />
                   {t.aiCategorize}
                 </Button>
               </div>
@@ -864,9 +865,9 @@ export default function ProjectDetail() {
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">{t.totalContractValue}</label>
-              <input type="number" value={settingsForm.totalContractValue} onChange={(e) => setSettingsForm({ ...settingsForm, totalContractValue: e.target.value })}
-                className="w-full border rounded p-2" />
-              <p className="text-xs text-muted-foreground mt-1">{t.feeNote}</p>
+              <input type="number" value={project.totalContractValue} readOnly
+                className="w-full border rounded p-2 bg-muted cursor-not-allowed" />
+              <p className="text-xs text-muted-foreground mt-1">يُحسب تلقائياً من مجموع الدفعات وأوامر التغيير</p>
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">{t.overhead}</label>
@@ -967,34 +968,100 @@ export default function ProjectDetail() {
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 p-4 md:p-8" dir={isRTL ? "rtl" : "ltr"}>
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-          <div className="flex items-center gap-4">
-            <Link href="/projects">
-              <Button variant="ghost" size="icon"><BackArrow className="w-5 h-5" /></Button>
-            </Link>
-            <div>
-              <h1 className="text-2xl font-bold">{settingsForm?.name || project.name}</h1>
-              <p className="text-muted-foreground text-sm">Design | Project Fee Burn & Profitability Tracker</p>
+        <header className="bg-white rounded-2xl border border-slate-100 shadow-sm px-5 py-4 mb-6">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="flex items-center gap-3">
+              <Link href="/projects">
+                <button className="p-2 rounded-xl hover:bg-slate-100 transition-colors">
+                  <BackArrow className="w-5 h-5 text-slate-600" />
+                </button>
+              </Link>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-xl font-bold text-slate-900">{settingsForm?.name || project.name}</h1>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">{project.code}</span>
+                  {project.phase && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-medium">{project.phase}</span>
+                  )}
+                  {isProjectPaused && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">
+                      {lang === 'ar' ? 'متوقف' : 'Paused'}
+                    </span>
+                  )}
+                </div>
+                <p className="text-slate-400 text-xs mt-0.5">{lang === 'ar' ? 'تتبع الميزانية والربحية' : 'Fee Burn & Profitability Tracker'}</p>
+              </div>
             </div>
-          </div>
-          <div className="flex gap-4 items-center">
-            <button onClick={toggleLanguage}
-              className="flex items-center gap-2 text-sm bg-white border px-3 py-1.5 rounded-md hover:bg-slate-50">
-              <Globe className="w-4 h-4" />
-              {lang === 'ar' ? 'English' : 'عربي'}
-            </button>
-            <div className="flex gap-2">
-              <div className="bg-white px-4 py-2 rounded-lg border text-sm">
-                <span className="text-muted-foreground block text-xs">CPI (Efficiency)</span>
-                <span className={`font-bold ${financials.CPI >= 1 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                  {financials.CPI.toFixed(2)}
-                </span>
-                <div className="text-[9px] text-muted-foreground mt-1 max-w-[120px] leading-tight">{t.cpiDefinition}</div>
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* CPI Badge */}
+              <div className={`px-3 py-1.5 rounded-xl border text-sm font-semibold ${
+                financials.CPI >= 1 ? 'bg-emerald-50 border-emerald-200 text-emerald-700' :
+                financials.CPI >= 0.8 ? 'bg-amber-50 border-amber-200 text-amber-700' :
+                'bg-rose-50 border-rose-200 text-rose-700'
+              }`}>
+                CPI: {financials.CPI > 0 ? financials.CPI.toFixed(2) : 'N/A'}
               </div>
-              <div className="bg-white px-4 py-2 rounded-lg border text-sm">
-                <span className="text-muted-foreground block text-xs">Profit</span>
-                <span className="font-bold">{fmtMoney(financials.currentMargin * financials.netRevenue / 100)}</span>
+              {/* Profit Badge */}
+              <div className={`px-3 py-1.5 rounded-xl border text-sm font-semibold ${
+                financials.currentMargin >= Number(project.targetMargin) ? 'bg-emerald-50 border-emerald-200 text-emerald-700' :
+                financials.currentMargin >= 10 ? 'bg-amber-50 border-amber-200 text-amber-700' :
+                'bg-rose-50 border-rose-200 text-rose-700'
+              }`}>
+                {lang === 'ar' ? 'ربح:' : 'Profit:'} {fmtMoney(financials.currentMargin * financials.netRevenue / 100)}
               </div>
+              {/* Export PDF */}
+              <button
+                onClick={async () => {
+                  setIsExportingPdf(true);
+                  try {
+                    await exportProjectPDF({
+                      projectName: project.name,
+                      projectCode: project.code,
+                      manager: project.manager,
+                      phase: project.phase,
+                      currency: project.currency,
+                      startDate: project.startDate,
+                      endDate: project.endDate,
+                      percentComplete: percentComplete,
+                      totalContractValue: financials.totalContractValue,
+                      approvedFee: financials.netRevenue,
+                      totalBurn: financials.totalBurn,
+                      remainingBudget: financials.productionBudget - financials.totalBurn,
+                      profitMargin: financials.currentMargin,
+                      cpi: financials.CPI,
+                      earnedValue: financials.EV,
+                      plannedValue: financials.BAC,
+                      payments: paymentsList.map(p => ({
+                        title: p.title,
+                        type: p.type,
+                        amount: Number(p.amount),
+                        status: p.status,
+                        date: p.date,
+                        paidAmount: Number(p.paidAmount || 0),
+                      })),
+                      expenses: expensesList.map(e => ({
+                        description: e.description ?? '',
+                        category: e.category,
+                        amount: Number(e.amount),
+                        date: (e as any).date ?? '',
+                      })),
+                      lang: lang as 'ar' | 'en',
+                    });
+                  } finally {
+                    setIsExportingPdf(false);
+                  }
+                }}
+                disabled={isExportingPdf}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors disabled:opacity-50">
+                {isExportingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+                PDF
+              </button>
+              {/* Language Toggle */}
+              <button onClick={toggleLanguage}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm transition-colors">
+                <Globe className="w-4 h-4" />
+                {lang === 'ar' ? 'EN' : 'ع'}
+              </button>
             </div>
           </div>
         </header>
