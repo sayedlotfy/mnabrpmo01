@@ -151,7 +151,7 @@ export default function ProjectDetail() {
   const [newBudgetLaborForm, setNewBudgetLaborForm] = useState({ staffId: "", hours: "" });
   const [newBudgetExpenseForm, setNewBudgetExpenseForm] = useState({ category: "Sub-Consultant", amount: "" });
   const [newLogForm, setNewLogForm] = useState({ staffId: "", hours: "", phase: "Concept", desc: "", startDate: "", endDate: "" });
-  const [newExpenseForm, setNewExpenseForm] = useState({ category: "Sub-Consultant", amount: "", desc: "", reimbursable: false });
+  const [newExpenseForm, setNewExpenseForm] = useState({ category: "Sub-Consultant", amount: "", desc: "", reimbursable: false, department: "Safety", recipient: "" });
   const [newPaymentForm, setNewPaymentForm] = useState({ title: "", type: "Contract" as "Contract" | "VO", amount: "", date: "", requirements: "" });
   const [newTransferForm, setNewTransferForm] = useState({ recipient: "", department: "Structural", amount: "", date: "", description: "", status: "Pending" as "Pending" | "Paid" });
 
@@ -237,8 +237,8 @@ export default function ProjectDetail() {
       }
     });
 
-    const totalExpenses = expensesList.reduce((sum, exp) => exp.reimbursable ? sum : sum + Number(exp.amount), 0);
-    const totalInternalTransfers = internalTransfersList.reduce((sum, tr) => sum + Number(tr.amount), 0);
+    const totalExpenses = expensesList.reduce((sum, exp) => (exp.reimbursable || exp.category === 'Internal Dept') ? sum : sum + Number(exp.amount), 0);
+    const totalInternalTransfers = expensesList.reduce((sum, exp) => exp.category === 'Internal Dept' ? sum + Number(exp.amount) : sum, 0);
     const totalBurn = totalLaborLoaded + totalExpenses + totalInternalTransfers + stoppageLoss;
 
     // Budget estimates
@@ -268,7 +268,7 @@ export default function ProjectDetail() {
       totalInvoiced, totalCollected, financialCompletionRate,
       overheadMultiplier, targetMarginPct, stoppageDays, totalContractValue,
     };
-  }, [project, settingsForm, staffList, timeLogsList, expensesList, budgetLaborList, budgetExpensesList, percentComplete, paymentsList, internalTransfersList]);
+  }, [project, settingsForm, staffList, timeLogsList, expensesList, budgetLaborList, budgetExpensesList, percentComplete, paymentsList]);
 
   // ---- Formatters ----
   const currency = project?.currency || "SAR";
@@ -310,8 +310,10 @@ export default function ProjectDetail() {
     createExpense.mutate({
       projectId, category: newExpenseForm.category, amount: newExpenseForm.amount,
       description: newExpenseForm.desc, reimbursable: newExpenseForm.reimbursable,
+      department: newExpenseForm.category === "Internal Dept" ? newExpenseForm.department : undefined,
+      recipient: newExpenseForm.category === "Internal Dept" ? newExpenseForm.recipient : undefined,
     });
-    setNewExpenseForm({ ...newExpenseForm, amount: "", desc: "" });
+    setNewExpenseForm({ ...newExpenseForm, amount: "", desc: "", recipient: "" });
   };
 
   const handleAddPayment = () => {
@@ -557,13 +559,15 @@ export default function ProjectDetail() {
               <span className="text-sm font-medium">{t.extExpenses}</span>
               <span className="font-bold">{fmtMoney(financials.totalExpenses)}</span>
             </div>
-            <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-sm font-medium flex items-center gap-1">
-                <Banknote className="w-3.5 h-3.5 text-amber-500" />
-                {t.internalTransfers}
-              </span>
-              <span className="font-bold text-amber-700">{fmtMoney(financials.totalInternalTransfers)}</span>
-            </div>
+            {financials.totalInternalTransfers > 0 && (
+              <div className="flex justify-between items-center py-2 border-b">
+                <span className="text-sm font-medium flex items-center gap-1">
+                  <Banknote className="w-3.5 h-3.5 text-amber-500" />
+                  {lang === 'ar' ? 'مستحقات أقسام داخلية متعاونة' : 'Internal Dept. Dues'}
+                </span>
+                <span className="font-bold text-amber-700">{fmtMoney(financials.totalInternalTransfers)}</span>
+              </div>
+            )}
             {financials.stoppageDays > 0 && (
               <div className="flex justify-between items-center p-2 bg-rose-50 rounded border border-rose-100">
                 <span className="text-sm font-medium text-rose-800">{t.stoppageCost}</span>
@@ -756,9 +760,13 @@ export default function ProjectDetail() {
               <label className="block text-xs font-medium text-muted-foreground mb-1">{t.category}</label>
               <select className="w-full border rounded p-2 text-sm bg-muted" value={newExpenseForm.category}
                 onChange={(e) => setNewExpenseForm({ ...newExpenseForm, category: e.target.value })}>
-                <option value="Sub-Consultant">Sub-Consultant</option><option value="Printing">Printing</option>
-                <option value="Travel">Travel</option><option value="Software License">Software License</option>
-                <option value="Commission">Commission</option><option value="Others">{t.others}</option>
+                <option value="Sub-Consultant">Sub-Consultant</option>
+                <option value="Printing">Printing</option>
+                <option value="Travel">Travel</option>
+                <option value="Software License">Software License</option>
+                <option value="Commission">Commission</option>
+                <option value="Internal Dept">{lang === 'ar' ? 'مستحقات أقسام داخلية متعاونة' : 'Internal Dept. Dues'}</option>
+                <option value="Others">{t.others}</option>
               </select>
             </div>
             <div>
@@ -766,6 +774,35 @@ export default function ProjectDetail() {
               <input type="number" className="w-full border rounded p-2 text-sm" value={newExpenseForm.amount}
                 onChange={(e) => setNewExpenseForm({ ...newExpenseForm, amount: e.target.value })} placeholder="0.00" />
             </div>
+            {newExpenseForm.category === 'Internal Dept' && (
+              <>
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">{lang === 'ar' ? 'القسم المستفيد' : 'Beneficiary Dept.'}</label>
+                  <select className="w-full border rounded p-2 text-sm bg-muted" value={newExpenseForm.department}
+                    onChange={(e) => setNewExpenseForm({ ...newExpenseForm, department: e.target.value })}>
+                    <option value="Safety">{lang === 'ar' ? 'السلامة' : 'Safety'}</option>
+                    <option value="Licensing">{lang === 'ar' ? 'التراخيص' : 'Licensing'}</option>
+                    <option value="Civil Defense">{lang === 'ar' ? 'الدفاع المدني' : 'Civil Defense'}</option>
+                    <option value="Design">{lang === 'ar' ? 'التصميم' : 'Design'}</option>
+                    <option value="Factories">{lang === 'ar' ? 'المصانع' : 'Factories'}</option>
+                    <option value="Infrastructure">{lang === 'ar' ? 'البنية التحتية' : 'Infrastructure'}</option>
+                    <option value="Structural">{lang === 'ar' ? 'الإنشائي' : 'Structural'}</option>
+                    <option value="MEP">{lang === 'ar' ? 'الميكانيكا والكهرباء' : 'MEP'}</option>
+                    <option value="IT">{lang === 'ar' ? 'تقنية المعلومات' : 'IT'}</option>
+                    <option value="Admin">{lang === 'ar' ? 'الإدارة' : 'Admin'}</option>
+                    <option value="Finance">{lang === 'ar' ? 'المالية' : 'Finance'}</option>
+                    <option value="HR">{lang === 'ar' ? 'الموارد البشرية' : 'HR'}</option>
+                    <option value="Other">{lang === 'ar' ? 'أخرى' : 'Other'}</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">{lang === 'ar' ? 'اسم المستفيد (اختياري)' : 'Recipient Name (optional)'}</label>
+                  <input type="text" className="w-full border rounded p-2 text-sm bg-muted" value={newExpenseForm.recipient}
+                    onChange={(e) => setNewExpenseForm({ ...newExpenseForm, recipient: e.target.value })}
+                    placeholder={lang === 'ar' ? 'اسم الشخص أو الجهة...' : 'Person or entity name...'} />
+                </div>
+              </>
+            )}
             <div className="col-span-2">
               <label className="flex items-center gap-2 mt-2 cursor-pointer">
                 <input type="checkbox" checked={newExpenseForm.reimbursable}
@@ -780,131 +817,6 @@ export default function ProjectDetail() {
           </Button>
         </Card>
       </div>
-
-      {/* Internal Transfers */}
-      <Card className="p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold flex items-center gap-2">
-            <Banknote className="w-5 h-5 text-amber-500" />
-            {t.internalTransfers}
-          </h3>
-          <div className="flex gap-3 text-xs">
-            <span className="px-2 py-1 rounded-full bg-amber-50 text-amber-700 font-medium">
-              {t.totalTransfers}: {fmtMoney(financials.totalInternalTransfers)}
-            </span>
-            <span className="px-2 py-1 rounded-full bg-slate-100 text-slate-600">
-              {internalTransfersList.filter(tr => tr.status === 'Pending').length} {t.transfersPending}
-            </span>
-          </div>
-        </div>
-        <p className="text-xs text-muted-foreground mb-4">{t.internalTransfersDesc}</p>
-
-        {/* Add Transfer Form */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4 p-3 rounded-lg bg-muted/40">
-          <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">{t.recipient}</label>
-            <input type="text" className="w-full border rounded p-2 text-sm bg-background" value={newTransferForm.recipient}
-              onChange={(e) => setNewTransferForm({ ...newTransferForm, recipient: e.target.value })}
-              placeholder={lang === 'ar' ? 'اسم المستفيد...' : 'Recipient name...'} />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">{t.department}</label>
-            <select className="w-full border rounded p-2 text-sm bg-background" value={newTransferForm.department}
-              onChange={(e) => setNewTransferForm({ ...newTransferForm, department: e.target.value })}>
-              <option value="Structural">{lang === 'ar' ? 'الإنشائي' : 'Structural'}</option>
-              <option value="MEP">{lang === 'ar' ? 'الميكانيكا والكهرباء' : 'MEP'}</option>
-              <option value="IT">{lang === 'ar' ? 'تقنية المعلومات' : 'IT'}</option>
-              <option value="Admin">{lang === 'ar' ? 'الإدارة' : 'Admin'}</option>
-              <option value="Finance">{lang === 'ar' ? 'المالية' : 'Finance'}</option>
-              <option value="HR">{lang === 'ar' ? 'الموارد البشرية' : 'HR'}</option>
-              <option value="Marketing">{lang === 'ar' ? 'التسويق' : 'Marketing'}</option>
-              <option value="Other">{lang === 'ar' ? 'أخرى' : 'Other'}</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">{t.amount}</label>
-            <input type="number" className="w-full border rounded p-2 text-sm bg-background" value={newTransferForm.amount}
-              onChange={(e) => setNewTransferForm({ ...newTransferForm, amount: e.target.value })} placeholder="0.00" />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">{t.transferDate}</label>
-            <input type="date" className="w-full border rounded p-2 text-sm bg-background" value={newTransferForm.date}
-              onChange={(e) => setNewTransferForm({ ...newTransferForm, date: e.target.value })} />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">{t.description}</label>
-            <input type="text" className="w-full border rounded p-2 text-sm bg-background" value={newTransferForm.description}
-              onChange={(e) => setNewTransferForm({ ...newTransferForm, description: e.target.value })}
-              placeholder={lang === 'ar' ? 'ملاحظات...' : 'Notes...'} />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">{t.transferStatus}</label>
-            <select className="w-full border rounded p-2 text-sm bg-background" value={newTransferForm.status}
-              onChange={(e) => setNewTransferForm({ ...newTransferForm, status: e.target.value as 'Pending' | 'Paid' })}>
-              <option value="Pending">{t.statusPending}</option>
-              <option value="Paid">{t.statusPaid}</option>
-            </select>
-          </div>
-        </div>
-        <Button onClick={handleAddTransfer} variant="outline" className="w-full justify-center mb-4 border-amber-300 text-amber-700 hover:bg-amber-50">
-          <Plus className="w-4 h-4" /> {t.addTransfer}
-        </Button>
-
-        {/* Transfers Table */}
-        {internalTransfersList.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-muted text-muted-foreground">
-                <tr>
-                  <th className="p-2 text-start">{t.recipient}</th>
-                  <th className="p-2 text-start">{t.department}</th>
-                  <th className="p-2 text-start">{t.amount}</th>
-                  <th className="p-2 text-start">{t.transferDate}</th>
-                  <th className="p-2 text-start">{t.description}</th>
-                  <th className="p-2 text-start">{t.transferStatus}</th>
-                  <th className="p-2 text-end">{t.action}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {internalTransfersList.map(tr => (
-                  <tr key={tr.id}>
-                    <td className="p-2 font-medium">{tr.recipient}</td>
-                    <td className="p-2">
-                      <span className="px-2 py-0.5 rounded-full text-xs bg-blue-50 text-blue-700">{tr.department}</span>
-                    </td>
-                    <td className="p-2 font-semibold text-amber-700">{fmtMoney(Number(tr.amount))}</td>
-                    <td className="p-2 text-muted-foreground text-xs">{tr.date}</td>
-                    <td className="p-2 text-muted-foreground text-xs">{tr.description || '-'}</td>
-                    <td className="p-2">
-                      <select
-                        className="text-xs border rounded px-1 py-0.5 bg-background"
-                        value={tr.status}
-                        onChange={(e) => updateInternalTransfer.mutate({ id: tr.id, status: e.target.value as 'Pending' | 'Paid' })}>
-                        <option value="Pending">{t.statusPending}</option>
-                        <option value="Paid">{t.statusPaid}</option>
-                      </select>
-                    </td>
-                    <td className="p-2 text-end">
-                      <button onClick={() => deleteInternalTransfer.mutate({ id: tr.id })} className="text-rose-400 hover:text-rose-600">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot className="bg-muted font-bold">
-                <tr>
-                  <td colSpan={2} className="p-2">{lang === 'ar' ? 'الإجمالي' : 'Total'}</td>
-                  <td className="p-2 text-amber-700">{fmtMoney(financials.totalInternalTransfers)}</td>
-                  <td colSpan={4}></td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        ) : (
-          <div className="p-4 text-center text-muted-foreground italic text-sm">{t.noTransfers}</div>
-        )}
-      </Card>
 
       {/* Recent Transactions */}
       <Card className="p-4">
@@ -937,8 +849,24 @@ export default function ProjectDetail() {
               })}
               {expensesList.map(exp => (
                 <tr key={`exp-${exp.id}`}>
-                  <td className="p-3"><Badge type={exp.reimbursable ? "success" : "warning"}>{t.expense}</Badge></td>
-                  <td className="p-3 text-muted-foreground">{exp.description} ({exp.category})</td>
+                  <td className="p-3">
+                    {exp.category === 'Internal Dept' ? (
+                      <Badge type="neutral">{lang === 'ar' ? 'مستحقات داخلية' : 'Internal Dept'}</Badge>
+                    ) : (
+                      <Badge type={exp.reimbursable ? "success" : "warning"}>{t.expense}</Badge>
+                    )}
+                  </td>
+                  <td className="p-3 text-muted-foreground">
+                    {exp.category === 'Internal Dept' ? (
+                      <span>
+                        {exp.description || '-'}
+                        <span className="mx-1 px-1.5 py-0.5 rounded text-xs bg-blue-50 text-blue-700 font-medium">{exp.department}</span>
+                        {exp.recipient && <span className="text-xs text-muted-foreground"> • {exp.recipient}</span>}
+                      </span>
+                    ) : (
+                      <span>{exp.description} ({exp.category})</span>
+                    )}
+                  </td>
                   <td className="p-3 text-muted-foreground text-xs">-</td>
                   <td className="p-3">{exp.reimbursable ? t.reimbursable : t.directCost}</td>
                   <td className="p-3 font-medium">{fmtMoney(Number(exp.amount))}</td>

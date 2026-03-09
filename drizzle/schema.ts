@@ -141,6 +141,8 @@ export const expenses = mysqlTable("expenses", {
   amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
   description: text("description"),
   reimbursable: boolean("reimbursable").notNull().default(false),
+  department: varchar("department", { length: 100 }),  // for Internal Dept category
+  recipient: varchar("recipient", { length: 200 }),    // optional name within dept
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

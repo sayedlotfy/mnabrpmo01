@@ -389,6 +389,8 @@ export const appRouter = router({
         amount: z.string(),
         description: z.string().optional(),
         reimbursable: z.boolean().default(false),
+        department: z.string().optional(),  // for Internal Dept category
+        recipient: z.string().optional(),   // optional name within dept
       }))
       .mutation(async ({ input }) => {
         return await db.createExpense(input);

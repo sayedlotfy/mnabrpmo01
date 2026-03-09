@@ -71,6 +71,13 @@
       "when": 1773078956920,
       "tag": "0009_modern_black_tarantula",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1773088070468,
+      "tag": "0010_first_mandroid",
+      "breakpoints": true
     }
   ]
 }
