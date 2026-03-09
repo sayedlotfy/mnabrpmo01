@@ -71,13 +71,6 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    delete: publicProcedure
-      .input(z.object({ userId: z.number() }))
-      .mutation(async ({ input }) => {
-        await db.deleteAppUser(input.userId);
-        return { success: true };
-      }),
-
     updateName: publicProcedure
       .input(z.object({
         userId: z.number(),
@@ -86,6 +79,13 @@ export const appRouter = router({
       }))
       .mutation(async ({ input }) => {
         await db.updateAppUserName(input.userId, input.name, input.nameEn);
+        return { success: true };
+      }),
+
+    delete: publicProcedure
+      .input(z.object({ userId: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.deleteAppUser(input.userId);
         return { success: true };
       }),
   }),
@@ -216,10 +216,45 @@ export const appRouter = router({
       }),
 
     delete: publicProcedure
-      .input(z.object({ id: z.number() }))
+      .input(z.object({
+        id: z.number(),
+        pmPin: z.string().optional(),
+        portfolioPin: z.string().optional(),
+      }))
       .mutation(async ({ input }) => {
+        // Verify PINs if provided
+        if (input.pmPin || input.portfolioPin) {
+          const allUsers = await db.getAllAppUsers();
+          const pmUsers = allUsers.filter((u: any) => u.role === 'project_manager');
+          const portfolioUsers = allUsers.filter((u: any) => u.role === 'portfolio_manager');
+          const pmValid = pmUsers.some((u: any) => u.pin === input.pmPin);
+          const portfolioValid = portfolioUsers.some((u: any) => u.pin === input.portfolioPin);
+          if (!pmValid) throw new Error('PIN مدير المشروع غير صحيح | Invalid Project Manager PIN');
+          if (!portfolioValid) throw new Error('PIN مدير المحفظة غير صحيح | Invalid Portfolio Manager PIN');
+        }
         return await db.deleteProject(input.id);
       }),
+
+    archive: publicProcedure
+      .input(z.object({
+        projectId: z.number(),
+        archivedByUserId: z.number(),
+      }))
+      .mutation(async ({ input }) => {
+        await db.archiveProject(input.projectId, input.archivedByUserId);
+        return { success: true };
+      }),
+
+    unarchive: publicProcedure
+      .input(z.object({ projectId: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.unarchiveProject(input.projectId);
+        return { success: true };
+      }),
+
+    listArchived: publicProcedure.query(async () => {
+      return await db.getArchivedProjects();
+    }),
 
     transfer: publicProcedure
       .input(z.object({

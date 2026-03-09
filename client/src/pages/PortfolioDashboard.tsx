@@ -5,7 +5,8 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Loader2, TrendingUp, AlertTriangle, DollarSign, BarChart3,
   FolderOpen, LogOut, Globe, Users, Plus, Trash2, KeyRound, Eye, EyeOff, X, Check, Bell,
-  FileText, CreditCard, Download, FileSpreadsheet, Receipt, Banknote
+  FileText, CreditCard, Download, FileSpreadsheet, Receipt, Banknote,
+  Archive, ArchiveRestore, ArrowRightLeft, Pencil
 } from "lucide-react";
 import {
   exportClaimsPDF, exportDebtsPDF, exportClaimsExcel, exportDebtsExcel,
@@ -120,6 +121,27 @@ const T = {
     statusClaimed: "مطالب به",
     statusInvoiced: "مفوتر",
     statusPaidPartial: "مدفوع جزئياً",
+    // Archive
+    archiveProject: "أرشفة المشروع",
+    archiveConfirm: "هل تريد أرشفة هذا المشروع؟ سيختفي من لوحة التحكم ويمكن إعادة تنشيطه لاحقاً.",
+    archiveDone: "تم أرشفة المشروع",
+    archivedProjects: "المشاريع المؤرشفة",
+    noArchivedProjects: "لا توجد مشاريع مؤرشفة",
+    archivedAt: "تاريخ الأرشفة",
+    unarchive: "إعادة تنشيط",
+    unarchiveDone: "تم إعادة تنشيط المشروع",
+    // Transfer
+    transferProject: "نقل المشروع",
+    transferTo: "نقل إلى",
+    selectManager: "اختر مدير المشروع",
+    transferDone: "تم نقل المشروع بنجاح",
+    transferConfirm: "تأكيد نقل المشروع",
+    // Edit Name
+    editName: "تعديل الاسم",
+    editNameAr: "الاسم بالعربية",
+    editNameEn: "الاسم بالإنجليزية",
+    saveChanges: "حفظ",
+    nameSaved: "تم حفظ الاسم بنجاح",
   },
   en: {
     portfolioDashboard: "Portfolio Dashboard",
@@ -217,6 +239,27 @@ const T = {
     statusClaimed: "Claimed",
     statusInvoiced: "Invoiced",
     statusPaidPartial: "Partial",
+    // Archive
+    archiveProject: "Archive Project",
+    archiveConfirm: "Archive this project? It will be hidden from the dashboard and can be reactivated later.",
+    archiveDone: "Project archived",
+    archivedProjects: "Archived Projects",
+    noArchivedProjects: "No archived projects",
+    archivedAt: "Archived On",
+    unarchive: "Reactivate",
+    unarchiveDone: "Project reactivated",
+    // Transfer
+    transferProject: "Transfer Project",
+    transferTo: "Transfer To",
+    selectManager: "Select Project Manager",
+    transferDone: "Project transferred successfully",
+    transferConfirm: "Confirm Project Transfer",
+    // Edit Name
+    editName: "Edit Name",
+    editNameAr: "Name (Arabic)",
+    editNameEn: "Name (English)",
+    saveChanges: "Save",
+    nameSaved: "Name saved successfully",
   },
 };
 
@@ -385,7 +428,7 @@ export default function PortfolioDashboard() {
   const [, navigate] = useLocation();
   const [managerFilter, setManagerFilter] = useState("all");
   const [cashFlowView, setCashFlowView] = useState<"monthly" | "quarterly">("monthly");
-  const [activeTab, setActiveTab] = useState<"dashboard" | "users" | "claims" | "debts">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "users" | "claims" | "debts" | "archived">("dashboard");
   const [showAddUser, setShowAddUser] = useState(false);
   const [changePinUser, setChangePinUser] = useState<{ id: number; name: string } | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
@@ -394,6 +437,15 @@ export default function PortfolioDashboard() {
   const [exportingPdf, setExportingPdf] = useState(false);
   const [exportingExcel, setExportingExcel] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
+  // Archive
+  const [archiveConfirmId, setArchiveConfirmId] = useState<number | null>(null);
+  // Transfer
+  const [transferProject, setTransferProject] = useState<{ id: number; name: string } | null>(null);
+  const [transferTargetId, setTransferTargetId] = useState<number | null>(null);
+  // Edit Name
+  const [editNameUser, setEditNameUser] = useState<{ id: number; name: string; nameEn: string } | null>(null);
+  const [editNameAr, setEditNameAr] = useState("");
+  const [editNameEn, setEditNameEn] = useState("");
 
   // Close notifications dropdown on outside click
   useEffect(() => {
@@ -409,6 +461,24 @@ export default function PortfolioDashboard() {
   const { data: summary, isLoading, refetch: refetchSummary } = trpc.portfolio.summary.useQuery();
   const { data: appUsers, refetch: refetchUsers } = trpc.appUsers.list.useQuery();
   const { data: claimsDebts, isLoading: claimsLoading } = trpc.portfolio.claimsAndDebts.useQuery();
+  const { data: archivedProjects, refetch: refetchArchived } = trpc.projects.listArchived.useQuery();
+
+  const archiveMutation = trpc.projects.archive.useMutation({
+    onSuccess: () => { toast.success(t.archiveDone); refetchSummary(); refetchArchived(); setArchiveConfirmId(null); },
+    onError: (e) => toast.error(e.message),
+  });
+  const unarchiveMutation = trpc.projects.unarchive.useMutation({
+    onSuccess: () => { toast.success(t.unarchiveDone); refetchSummary(); refetchArchived(); },
+    onError: (e) => toast.error(e.message),
+  });
+  const transferMutation = trpc.projects.transfer.useMutation({
+    onSuccess: () => { toast.success(t.transferDone); refetchSummary(); setTransferProject(null); setTransferTargetId(null); },
+    onError: (e) => toast.error(e.message),
+  });
+  const updateNameMutation = trpc.appUsers.updateName.useMutation({
+    onSuccess: () => { toast.success(t.nameSaved); refetchUsers(); setEditNameUser(null); },
+    onError: (e) => toast.error(e.message),
+  });
 
   const deleteUser = trpc.appUsers.delete.useMutation({
     onSuccess: () => {
@@ -519,6 +589,120 @@ export default function PortfolioDashboard() {
               <button onClick={() => setConfirmDeleteId(null)}
                 className="flex-1 border border-slate-200 text-slate-700 rounded-lg py-2 text-sm font-medium hover:bg-slate-50 transition-colors">
                 {t.no}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Archive Confirm Modal */}
+      {archiveConfirmId !== null && (() => {
+        const proj = (summary?.projects || []).find((p: any) => p.id === archiveConfirmId);
+        return (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" dir={isAr ? "rtl" : "ltr"}>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
+              <Archive className="w-10 h-10 text-amber-500 mx-auto mb-3" />
+              <h3 className="font-bold text-slate-800 mb-2">{t.archiveProject}</h3>
+              <p className="text-sm text-slate-500 mb-5">{t.archiveConfirm}</p>
+              {proj && <p className="text-sm font-semibold text-slate-700 mb-5">"{proj.name}"</p>}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => archiveMutation.mutate({ projectId: archiveConfirmId, archivedByUserId: currentUser?.id || 0 })}
+                  disabled={archiveMutation.isPending}
+                  className="flex-1 bg-amber-500 text-white rounded-lg py-2 text-sm font-medium hover:bg-amber-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                  {archiveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Archive className="w-4 h-4" />}
+                  {t.archiveProject}
+                </button>
+                <button onClick={() => setArchiveConfirmId(null)}
+                  className="flex-1 border border-slate-200 text-slate-700 rounded-lg py-2 text-sm font-medium hover:bg-slate-50 transition-colors">
+                  {t.cancel}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Transfer Project Modal */}
+      {transferProject && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" dir={isAr ? "rtl" : "ltr"}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <ArrowRightLeft className="w-5 h-5 text-blue-500" />{t.transferProject}
+              </h2>
+              <button onClick={() => { setTransferProject(null); setTransferTargetId(null); }} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
+            </div>
+            <p className="text-sm text-slate-500 mb-1">{isAr ? "المشروع" : "Project"}:</p>
+            <p className="font-semibold text-slate-800 mb-4">{transferProject.name}</p>
+            <div className="mb-5">
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t.transferTo}</label>
+              <select value={transferTargetId ?? ""} onChange={e => setTransferTargetId(Number(e.target.value) || null)}
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">{t.selectManager}</option>
+                {(appUsers || []).filter(u => u.role === "project_manager").map(u => (
+                  <option key={u.id} value={u.id}>{u.name}{u.nameEn ? ` / ${u.nameEn}` : ""}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  if (!transferTargetId) return toast.error(isAr ? "اختر مدير المشروع" : "Select a manager");
+                  const mgr = (appUsers || []).find(u => u.id === transferTargetId);
+                  if (!mgr) return;
+                  transferMutation.mutate({ projectId: transferProject.id, newAppUserId: transferTargetId, newManagerName: mgr.name });
+                }}
+                disabled={transferMutation.isPending}
+                className="flex-1 bg-blue-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                {transferMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                {t.transferConfirm}
+              </button>
+              <button onClick={() => { setTransferProject(null); setTransferTargetId(null); }}
+                className="flex-1 border border-slate-200 text-slate-700 rounded-lg py-2 text-sm font-medium hover:bg-slate-50 transition-colors">
+                {t.cancel}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Name Modal */}
+      {editNameUser && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" dir={isAr ? "rtl" : "ltr"}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <Pencil className="w-5 h-5 text-blue-500" />{t.editName}
+              </h2>
+              <button onClick={() => setEditNameUser(null)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t.editNameAr} *</label>
+                <input value={editNameAr} onChange={e => setEditNameAr(e.target.value)}
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t.editNameEn}</label>
+                <input value={editNameEn} onChange={e => setEditNameEn(e.target.value)}
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  if (!editNameAr.trim()) return toast.error(t.errorNameRequired);
+                  updateNameMutation.mutate({ userId: editNameUser.id, name: editNameAr.trim(), nameEn: editNameEn.trim() || undefined });
+                }}
+                disabled={updateNameMutation.isPending}
+                className="flex-1 bg-blue-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                {updateNameMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                {t.saveChanges}
+              </button>
+              <button onClick={() => setEditNameUser(null)}
+                className="flex-1 border border-slate-200 text-slate-700 rounded-lg py-2 text-sm font-medium hover:bg-slate-50 transition-colors">
+                {t.cancel}
               </button>
             </div>
           </div>
@@ -640,6 +824,7 @@ export default function PortfolioDashboard() {
             { key: "dashboard", label: isAr ? "لوحة التحكم" : "Dashboard", icon: BarChart3 },
             { key: "claims", label: t.claimsTab, icon: Receipt, badge: claimsDebts?.claims?.length },
             { key: "debts", label: t.debtsTab, icon: Banknote, badge: claimsDebts?.debts?.length },
+            { key: "archived", label: t.archivedProjects, icon: Archive, badge: archivedProjects?.length || undefined },
             { key: "users", label: t.userManagement, icon: Users },
           ].map(tab => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key as any)}
@@ -849,11 +1034,25 @@ export default function PortfolioDashboard() {
                             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${status.color} ${status.bg}`}>{status.label}</span>
                           </td>
                           <td className="px-4 py-3">
-                            <button onClick={() => navigate(`/project/${p.id}`)}
-                              className="text-xs font-medium transition-opacity opacity-60 hover:opacity-100 whitespace-nowrap"
-                              style={{ color: "var(--primary)" }}>
-                              {t.viewProject} →
-                            </button>
+                            <div className="flex items-center gap-1 flex-wrap">
+                              <button onClick={() => navigate(`/project/${p.id}`)}
+                                className="text-xs font-medium transition-opacity opacity-60 hover:opacity-100 whitespace-nowrap"
+                                style={{ color: "var(--primary)" }}>
+                                {t.viewProject} →
+                              </button>
+                              <button onClick={() => setTransferProject({ id: p.id, name: p.name })}
+                                className="text-xs px-2 py-0.5 rounded-lg transition-all opacity-60 hover:opacity-100 flex items-center gap-1"
+                                style={{ color: "oklch(0.55 0.18 260)", background: "oklch(0.55 0.18 260 / 10%)" }}
+                                title={t.transferProject}>
+                                <ArrowRightLeft className="w-3 h-3" />
+                              </button>
+                              <button onClick={() => setArchiveConfirmId(p.id)}
+                                className="text-xs px-2 py-0.5 rounded-lg transition-all opacity-60 hover:opacity-100 flex items-center gap-1"
+                                style={{ color: "oklch(0.65 0.15 60)", background: "oklch(0.75 0.15 60 / 10%)" }}
+                                title={t.archiveProject}>
+                                <Archive className="w-3 h-3" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -863,6 +1062,86 @@ export default function PortfolioDashboard() {
               </div>
             </div>
           </>
+        )}
+
+        {/* ===== ARCHIVED TAB ===== */}
+        {activeTab === "archived" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: "var(--foreground)" }}>
+                <Archive className="w-5 h-5" style={{ color: "oklch(0.65 0.15 60)" }} />
+                {t.archivedProjects}
+                {archivedProjects && archivedProjects.length > 0 && (
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                    style={{ background: "oklch(0.75 0.15 60 / 15%)", color: "oklch(0.65 0.15 60)" }}>
+                    {archivedProjects.length}
+                  </span>
+                )}
+              </h2>
+            </div>
+            <div className="lg-card overflow-hidden">
+              {(!archivedProjects || archivedProjects.length === 0) ? (
+                <div className="p-12 text-center">
+                  <Archive className="w-12 h-12 opacity-20 mx-auto mb-3" />
+                  <p className="text-sm opacity-40">{t.noArchivedProjects}</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr style={{ background: "oklch(0.5 0.01 260 / 5%)" }}>
+                        {[t.projectName, t.manager, t.phase, t.archivedAt, ""].map((h, i) => (
+                          <th key={i} className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-start whitespace-nowrap opacity-50">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {archivedProjects.map((p: any) => (
+                        <tr key={p.id} className="transition-colors"
+                          style={{ borderBottom: "1px solid var(--lg-border)" }}
+                          onMouseEnter={e => (e.currentTarget.style.background = "oklch(0.5 0.01 260 / 4%)")}
+                          onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+                          <td className="px-4 py-3">
+                            <p className="font-medium" style={{ color: "var(--foreground)" }}>{p.name}</p>
+                            <p className="text-xs opacity-40">{p.code}</p>
+                          </td>
+                          <td className="px-4 py-3 opacity-70">{p.manager || "—"}</td>
+                          <td className="px-4 py-3">
+                            <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                              style={{ background: "oklch(0.55 0.18 260 / 12%)", color: "oklch(0.55 0.18 260)" }}>
+                              {p.phase || "—"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-xs opacity-60">
+                            {p.archivedAt ? new Date(p.archivedAt).toLocaleDateString(isAr ? "ar-SA" : "en-US") : "—"}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => unarchiveMutation.mutate({ projectId: p.id })}
+                                disabled={unarchiveMutation.isPending}
+                                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl transition-all"
+                                style={{ background: "oklch(0.55 0.18 145 / 10%)", border: "1px solid oklch(0.55 0.18 145 / 25%)", color: "oklch(0.55 0.18 145)" }}
+                                onMouseEnter={e => (e.currentTarget.style.background = "oklch(0.55 0.18 145 / 18%)")}
+                                onMouseLeave={e => (e.currentTarget.style.background = "oklch(0.55 0.18 145 / 10%)")}>
+                                <ArchiveRestore className="w-3.5 h-3.5" />
+                                {t.unarchive}
+                              </button>
+                              <button onClick={() => navigate(`/project/${p.id}`)}
+                                className="text-xs font-medium transition-opacity opacity-60 hover:opacity-100 whitespace-nowrap"
+                                style={{ color: "var(--primary)" }}>
+                                {t.viewProject} →
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
         )}
 
         {/* ===== USERS TAB ===== */}
@@ -918,7 +1197,15 @@ export default function PortfolioDashboard() {
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap justify-end">
+                          <button onClick={() => { setEditNameUser({ id: user.id, name: user.name, nameEn: user.nameEn || "" }); setEditNameAr(user.name); setEditNameEn(user.nameEn || ""); }}
+                            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl transition-all"
+                            style={{ background: "oklch(0.55 0.18 260 / 8%)", border: "1px solid oklch(0.55 0.18 260 / 20%)", color: "oklch(0.55 0.18 260)" }}
+                            onMouseEnter={e => (e.currentTarget.style.background = "oklch(0.55 0.18 260 / 15%)")}
+                            onMouseLeave={e => (e.currentTarget.style.background = "oklch(0.55 0.18 260 / 8%)")}>
+                            <Pencil className="w-3.5 h-3.5" />
+                            {t.editName}
+                          </button>
                           <button onClick={() => setChangePinUser({ id: user.id, name: user.name })}
                             className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl transition-all"
                             style={{ background: "var(--lg-glass-bg)", border: "1px solid var(--lg-glass-border)", color: "var(--foreground)" }}

@@ -132,13 +132,13 @@
 - [x] تصدير تاب المديونيات بـ PDF وExcel
 
 ## تحديث: مارس 2026 - نظام أرشفة المشاريع
-- [ ] إضافة حقل isArchived (boolean) وarchivedAt (timestamp) وarchivedBy في schema
-- [ ] تطبيق db:push للمايجريشن
-- [ ] إضافة procedures: archiveProject, unarchiveProject, deleteProject (بمصادقة مزدوجة)
-- [ ] تحديث Portfolio Dashboard: زر أرشفة + إخفاء المؤرشف من الجداول والـ KPIs
-- [ ] إضافة تاب/قسم "المؤرشف" في Portfolio Dashboard لعرض المشاريع المؤرشفة
-- [ ] تحديث Project Detail: شريط تنبيه "مؤرشف" + زر إعادة تنشيط (مدير المحفظة فقط) + زر حذف بمصادقة مزدوجة
-- [ ] مصادقة مزدوجة للحذف: PIN مدير المشروع + PIN مدير المحفظة
+- [x] إضافة حقل isArchived (boolean) وarchivedAt (timestamp) وarchivedBy في schema
+- [x] تطبيق db:push للمايجريشن
+- [x] إضافة procedures: archiveProject, unarchiveProject, deleteProject (بمصادقة مزدوجة)
+- [x] تحديث Portfolio Dashboard: زر أرشفة + إخفاء المؤرشف من الجداول والـ KPIs
+- [x] إضافة تاب/قسم "المؤرشف" في Portfolio Dashboard لعرض المشاريع المؤرشفة
+- [x] تحديث Project Detail: شريط تنبيه "مؤرشف" + زر إعادة تنشيط (مدير المحفظة فقط) + زر حذف بمصادقة مزدوجة
+- [x] مصادقة مزدوجة للحذف: PIN مدير المشروع + PIN مدير المحفظة
 
 ## تحديث: مارس 2026 - بند الدفعات الداخلية
 - [x] إضافة جدول internalTransfers في schema (recipient, department, amount, date, description, status)
@@ -147,3 +147,21 @@
 - [x] إضافة قسم "الدفعات الداخلية" في تاب المصاريف بـ Project Detail
 - [x] ربط مجموع الدفعات الداخلية بحسابات التكلفة الإجمالية والربحية في KPIs
 - [ ] تحديث تصدير PDF ليشمل الدفعات الداخلية
+
+## تحديث: مارس 2026 - دمج الدفعات الداخلية في سجل المصاريف
+- [ ] إضافة حقل recipient وdepartment لجدول expenses في schema
+- [ ] تطبيق db:push للمايجريشن
+- [ ] تحديث procedure expenses.create لقبول recipient وdepartment
+- [ ] إضافة "دفعات لأقسام داخلية" كفئة في dropdown المصاريف
+- [ ] إظهار recipient وdepartment في جدول سجل المصاريف
+- [ ] إزالة البطاقة المنفصلة للدفعات الداخلية وجدول internalTransfers
+- [ ] إبقاء الحسابات المالية صحيحة (totalBurn يشمل الدفعات الداخلية)
+
+## تحديث: مارس 2026 - أرشفة + تعديل الاسم + نقل المشروع
+- [x] db.ts: archiveProject, unarchiveProject, getAllProjects (يستثني المؤرشف), getArchivedProjects
+- [x] routers.ts: projects.archive, projects.unarchive, projects.listArchived, appUsers.updateName
+- [x] Portfolio Dashboard: زر أرشفة على كل مشروع (مدير المحفظة فقط) + تبويب "المؤرشف"
+- [x] Portfolio Dashboard: نقل مشروع من مدير لآخر (dialog اختيار مدير جديد)
+- [x] Project Detail: شريط تنبيه أصفر عند الأرشفة + زر إعادة تنشيط
+- [x] Project Detail: زر حذف بمصادقة مزدوجة (PIN مدير المشروع + PIN مدير المحفظة)
+- [x] تاب إدارة المستخدمين: تعديل الاسم inline (click to edit)

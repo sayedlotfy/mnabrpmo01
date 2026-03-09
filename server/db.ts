@@ -117,6 +117,12 @@ export async function updateAppUserPin(userId: number, newPin: string) {
   return await db.update(appUsers).set({ pinHash }).where(eq(appUsers.id, userId));
 }
 
+export async function updateAppUserName(userId: number, name: string, nameEn?: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.update(appUsers).set({ name, ...(nameEn !== undefined ? { nameEn } : {}) }).where(eq(appUsers.id, userId));
+}
+
 export async function deleteAppUser(userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -131,17 +137,11 @@ export async function getAppUserById(userId: number) {
 }
 
 // ============ Projects ============
-export async function getAllProjects() {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  return await db.select().from(projects).orderBy(desc(projects.updatedAt));
-}
-
 export async function getProjectsByAppUser(appUserId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   return await db.select().from(projects)
-    .where(eq(projects.appUserId, appUserId))
+    .where(and(eq(projects.appUserId, appUserId), eq(projects.isArchived, false)))
     .orderBy(desc(projects.updatedAt));
 }
 
@@ -162,6 +162,48 @@ export async function updateProject(projectId: number, data: Partial<InsertProje
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   return await db.update(projects).set(data).where(eq(projects.id, projectId));
+}
+
+export async function archiveProject(projectId: number, archivedByUserId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.update(projects).set({
+    isArchived: true,
+    archivedAt: new Date(),
+    archivedBy: archivedByUserId,
+  }).where(eq(projects.id, projectId));
+}
+
+export async function unarchiveProject(projectId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.update(projects).set({
+    isArchived: false,
+    archivedAt: null,
+    archivedBy: null,
+  }).where(eq(projects.id, projectId));
+}
+
+export async function getAllProjects() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.select().from(projects)
+    .where(eq(projects.isArchived, false))
+    .orderBy(desc(projects.updatedAt));
+}
+
+export async function getArchivedProjects() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.select().from(projects)
+    .where(eq(projects.isArchived, true))
+    .orderBy(desc(projects.archivedAt));
+}
+
+export async function getAllProjectsIncludingArchived() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.select().from(projects).orderBy(desc(projects.updatedAt));
 }
 
 export async function deleteProject(projectId: number) {
@@ -503,13 +545,6 @@ export async function deleteProjectPhase(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   return await db.delete(projectPhases).where(eq(projectPhases.id, id));
-}
-
-// ============ App User Name Update ============
-export async function updateAppUserName(userId: number, name: string, nameEn?: string) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  return await db.update(appUsers).set({ name, nameEn: nameEn ?? null }).where(eq(appUsers.id, userId));
 }
 
 // ============ Transfer Project ============

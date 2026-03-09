@@ -5,7 +5,8 @@ import { trpc } from "@/lib/trpc";
 import {
   Loader2, ArrowLeft, ArrowRight, Globe, Wallet, TrendingDown, TrendingUp,
   PieChart, Users, Clock, Plus, Trash2, Settings, Target,
-  BarChart3, Sparkles, Pause, Play, Receipt, Banknote, AlertTriangle
+  BarChart3, Sparkles, Pause, Play, Receipt, Banknote, AlertTriangle,
+  Archive, ArchiveRestore, X
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useRoute, Link } from "wouter";
@@ -126,6 +127,23 @@ export default function ProjectDetail() {
   const deleteInternalTransfer = trpc.internalTransfers.delete.useMutation({ onSuccess: () => utils.internalTransfers.list.invalidate({ projectId }) });
   const updatePaymentStatus = trpc.payments.updateStatus.useMutation({ onSuccess: () => utils.payments.list.invalidate({ projectId }) });
   const updateProject = trpc.projects.update.useMutation({ onSuccess: () => utils.projects.get.invalidate({ id: projectId }) });
+  const archiveMutation = trpc.projects.archive.useMutation({
+    onSuccess: () => { utils.projects.get.invalidate({ id: projectId }); },
+    onError: (e) => alert(e.message),
+  });
+  const unarchiveMutation = trpc.projects.unarchive.useMutation({
+    onSuccess: () => { utils.projects.get.invalidate({ id: projectId }); },
+    onError: (e) => alert(e.message),
+  });
+  const deleteProjectMutation = trpc.projects.delete.useMutation({
+    onSuccess: () => { window.location.href = "/projects"; },
+    onError: (e) => alert(e.message),
+  });
+  // Delete confirmation state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletePin1, setDeletePin1] = useState("");
+  const [deletePin2, setDeletePin2] = useState("");
+  const [deleteStep, setDeleteStep] = useState<"pm" | "portfolio">("pm");
   // categorizeExpense removed - AI auto-categorize not available in current API
 
   // ---- Input States ----
@@ -1365,6 +1383,103 @@ export default function ProjectDetail() {
             </div>
           </div>
         </header>
+
+        {/* Archive Banner */}
+        {(project as any).isArchived && (
+          <div className="mb-4 px-4 py-3 rounded-xl flex items-center justify-between gap-4 flex-wrap"
+            style={{ background: "oklch(0.65 0.15 60 / 12%)", border: "1px solid oklch(0.65 0.15 60 / 30%)" }}>
+            <div className="flex items-center gap-2">
+              <Archive className="w-4 h-4" style={{ color: "oklch(0.55 0.15 60)" }} />
+              <span className="text-sm font-medium" style={{ color: "oklch(0.45 0.15 60)" }}>
+                {lang === 'ar' ? 'هذا المشروع مؤرشف — غير نشط في لوحة التحكم' : 'This project is archived — not visible in the dashboard'}
+              </span>
+            </div>
+            {isPortfolioManager && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => unarchiveMutation.mutate({ projectId })}
+                  disabled={unarchiveMutation.isPending}
+                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl font-medium transition-all disabled:opacity-50"
+                  style={{ background: "oklch(0.55 0.18 145 / 12%)", border: "1px solid oklch(0.55 0.18 145 / 30%)", color: "oklch(0.45 0.18 145)" }}>
+                  {unarchiveMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArchiveRestore className="w-3.5 h-3.5" />}
+                  {lang === 'ar' ? 'إعادة تنشيط' : 'Reactivate'}
+                </button>
+                <button
+                  onClick={() => { setShowDeleteConfirm(true); setDeleteStep("pm"); setDeletePin1(""); setDeletePin2(""); }}
+                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl font-medium transition-all"
+                  style={{ background: "oklch(0.6 0.2 20 / 10%)", border: "1px solid oklch(0.6 0.2 20 / 25%)", color: "oklch(0.5 0.2 20)" }}>
+                  <Trash2 className="w-3.5 h-3.5" />
+                  {lang === 'ar' ? 'حذف نهائي' : 'Delete Permanently'}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Delete Confirm Modal */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" dir={isRTL ? "rtl" : "ltr"}>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-red-600 flex items-center gap-2">
+                  <Trash2 className="w-5 h-5" />
+                  {lang === 'ar' ? 'حذف المشروع نهائياً' : 'Delete Project Permanently'}
+                </h2>
+                <button onClick={() => setShowDeleteConfirm(false)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
+              </div>
+              {deleteStep === "pm" ? (
+                <div>
+                  <p className="text-sm text-slate-600 mb-4">
+                    {lang === 'ar' ? 'الخطوة 1/2: أدخل PIN مدير المشروع للتأكيد' : 'Step 1/2: Enter Project Manager PIN to confirm'}
+                  </p>
+                  <input
+                    type="password" maxLength={4} value={deletePin1}
+                    onChange={e => setDeletePin1(e.target.value)}
+                    placeholder={lang === 'ar' ? 'PIN مدير المشروع' : 'Project Manager PIN'}
+                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-center tracking-widest mb-4 focus:outline-none focus:ring-2 focus:ring-red-400" />
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        if (deletePin1.length < 4) return alert(lang === 'ar' ? 'أدخل 4 أرقام' : 'Enter 4 digits');
+                        setDeleteStep("portfolio");
+                      }}
+                      className="flex-1 bg-red-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-red-700">
+                      {lang === 'ar' ? 'التالي' : 'Next'}
+                    </button>
+                    <button onClick={() => setShowDeleteConfirm(false)}
+                      className="flex-1 border border-slate-200 text-slate-700 rounded-lg py-2 text-sm font-medium hover:bg-slate-50">
+                      {lang === 'ar' ? 'إلغاء' : 'Cancel'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-sm text-slate-600 mb-4">
+                    {lang === 'ar' ? 'الخطوة 2/2: أدخل PIN مدير المحفظة للتأكيد النهائي' : 'Step 2/2: Enter Portfolio Manager PIN for final confirmation'}
+                  </p>
+                  <input
+                    type="password" maxLength={4} value={deletePin2}
+                    onChange={e => setDeletePin2(e.target.value)}
+                    placeholder={lang === 'ar' ? 'PIN مدير المحفظة' : 'Portfolio Manager PIN'}
+                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-center tracking-widest mb-4 focus:outline-none focus:ring-2 focus:ring-red-400" />
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => deleteProjectMutation.mutate({ id: projectId, pmPin: deletePin1, portfolioPin: deletePin2 })}
+                      disabled={deleteProjectMutation.isPending}
+                      className="flex-1 bg-red-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2">
+                      {deleteProjectMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                      {lang === 'ar' ? 'حذف نهائياً' : 'Delete Permanently'}
+                    </button>
+                    <button onClick={() => setDeleteStep("pm")}
+                      className="flex-1 border border-slate-200 text-slate-700 rounded-lg py-2 text-sm font-medium hover:bg-slate-50">
+                      {lang === 'ar' ? 'رجوع' : 'Back'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Navigation Tabs */}
         <div className="flex gap-1 mb-6 overflow-x-auto" style={{ borderBottom: "1px solid var(--lg-border)" }}>
