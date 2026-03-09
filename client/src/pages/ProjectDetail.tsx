@@ -92,6 +92,9 @@ export default function ProjectDetail() {
   const { data: paymentsList = [] } = trpc.payments.list.useQuery(
     { projectId }, { enabled: projectId > 0 }
   );
+  const { data: internalTransfersList = [] } = trpc.internalTransfers.list.useQuery(
+    { projectId }, { enabled: projectId > 0 }
+  );
   // ---- Project Phases ----
   const { data: phasesList = [], refetch: refetchPhases } = trpc.projectPhases.list.useQuery(
     { projectId }, { enabled: projectId > 0 }
@@ -118,6 +121,9 @@ export default function ProjectDetail() {
   const deleteExpense = trpc.expenses.delete.useMutation({ onSuccess: () => utils.expenses.list.invalidate({ projectId }) });
   const createPayment = trpc.payments.create.useMutation({ onSuccess: () => utils.payments.list.invalidate({ projectId }) });
   const deletePayment = trpc.payments.delete.useMutation({ onSuccess: () => utils.payments.list.invalidate({ projectId }) });
+  const createInternalTransfer = trpc.internalTransfers.create.useMutation({ onSuccess: () => utils.internalTransfers.list.invalidate({ projectId }) });
+  const updateInternalTransfer = trpc.internalTransfers.update.useMutation({ onSuccess: () => utils.internalTransfers.list.invalidate({ projectId }) });
+  const deleteInternalTransfer = trpc.internalTransfers.delete.useMutation({ onSuccess: () => utils.internalTransfers.list.invalidate({ projectId }) });
   const updatePaymentStatus = trpc.payments.updateStatus.useMutation({ onSuccess: () => utils.payments.list.invalidate({ projectId }) });
   const updateProject = trpc.projects.update.useMutation({ onSuccess: () => utils.projects.get.invalidate({ id: projectId }) });
   // categorizeExpense removed - AI auto-categorize not available in current API
@@ -129,6 +135,7 @@ export default function ProjectDetail() {
   const [newLogForm, setNewLogForm] = useState({ staffId: "", hours: "", phase: "Concept", desc: "", startDate: "", endDate: "" });
   const [newExpenseForm, setNewExpenseForm] = useState({ category: "Sub-Consultant", amount: "", desc: "", reimbursable: false });
   const [newPaymentForm, setNewPaymentForm] = useState({ title: "", type: "Contract" as "Contract" | "VO", amount: "", date: "", requirements: "" });
+  const [newTransferForm, setNewTransferForm] = useState({ recipient: "", department: "Structural", amount: "", date: "", description: "", status: "Pending" as "Pending" | "Paid" });
 
   // ---- Settings State ----
   const [settingsForm, setSettingsForm] = useState<null | {
@@ -213,7 +220,8 @@ export default function ProjectDetail() {
     });
 
     const totalExpenses = expensesList.reduce((sum, exp) => exp.reimbursable ? sum : sum + Number(exp.amount), 0);
-    const totalBurn = totalLaborLoaded + totalExpenses + stoppageLoss;
+    const totalInternalTransfers = internalTransfersList.reduce((sum, tr) => sum + Number(tr.amount), 0);
+    const totalBurn = totalLaborLoaded + totalExpenses + totalInternalTransfers + stoppageLoss;
 
     // Budget estimates
     let totalEstLaborCost = 0;
@@ -235,14 +243,14 @@ export default function ProjectDetail() {
     const budgetUtilized = productionBudget > 0 ? (totalBurn / productionBudget) * 100 : 0;
 
     return {
-      netRevenue, productionBudget, totalLaborLoaded, totalExpenses, totalBurn,
+      netRevenue, productionBudget, totalLaborLoaded, totalExpenses, totalInternalTransfers, totalBurn,
       currentMargin, budgetUtilized, riyadhCost, cairoCost, BAC,
       totalEstLaborCost, totalEstExpenses, totalEstHours, totalActualHours,
       EV, CPI, isUnderBudget, durationDays, stoppageLoss, dailyProfitTarget,
       totalInvoiced, totalCollected, financialCompletionRate,
       overheadMultiplier, targetMarginPct, stoppageDays, totalContractValue,
     };
-  }, [project, settingsForm, staffList, timeLogsList, expensesList, budgetLaborList, budgetExpensesList, percentComplete, paymentsList]);
+  }, [project, settingsForm, staffList, timeLogsList, expensesList, budgetLaborList, budgetExpensesList, percentComplete, paymentsList, internalTransfersList]);
 
   // ---- Formatters ----
   const currency = project?.currency || "SAR";
@@ -296,6 +304,20 @@ export default function ProjectDetail() {
       requirements: newPaymentForm.requirements,
     });
     setNewPaymentForm({ title: "", type: "Contract", amount: "", date: "", requirements: "" });
+  };
+
+  const handleAddTransfer = () => {
+    if (!newTransferForm.recipient || !newTransferForm.amount) return;
+    createInternalTransfer.mutate({
+      projectId,
+      recipient: newTransferForm.recipient,
+      department: newTransferForm.department,
+      amount: newTransferForm.amount,
+      date: newTransferForm.date || new Date().toISOString().slice(0, 10),
+      description: newTransferForm.description,
+      status: newTransferForm.status,
+    });
+    setNewTransferForm({ recipient: "", department: "Structural", amount: "", date: "", description: "", status: "Pending" });
   };
 
   const handleAutoCategorize = async () => {
@@ -513,9 +535,16 @@ export default function ProjectDetail() {
               <span className="text-sm font-medium">{t.cairoProd}</span>
               <span className="font-bold">{fmtMoney(financials.cairoCost)}</span>
             </div>
-            <div className="flex justify-between items-center p-2 bg-slate-50 rounded">
+                    <div className="flex justify-between items-center py-2 border-b">
               <span className="text-sm font-medium">{t.extExpenses}</span>
               <span className="font-bold">{fmtMoney(financials.totalExpenses)}</span>
+            </div>
+            <div className="flex justify-between items-center py-2 border-b">
+              <span className="text-sm font-medium flex items-center gap-1">
+                <Banknote className="w-3.5 h-3.5 text-amber-500" />
+                {t.internalTransfers}
+              </span>
+              <span className="font-bold text-amber-700">{fmtMoney(financials.totalInternalTransfers)}</span>
             </div>
             {financials.stoppageDays > 0 && (
               <div className="flex justify-between items-center p-2 bg-rose-50 rounded border border-rose-100">
@@ -733,6 +762,131 @@ export default function ProjectDetail() {
           </Button>
         </Card>
       </div>
+
+      {/* Internal Transfers */}
+      <Card className="p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold flex items-center gap-2">
+            <Banknote className="w-5 h-5 text-amber-500" />
+            {t.internalTransfers}
+          </h3>
+          <div className="flex gap-3 text-xs">
+            <span className="px-2 py-1 rounded-full bg-amber-50 text-amber-700 font-medium">
+              {t.totalTransfers}: {fmtMoney(financials.totalInternalTransfers)}
+            </span>
+            <span className="px-2 py-1 rounded-full bg-slate-100 text-slate-600">
+              {internalTransfersList.filter(tr => tr.status === 'Pending').length} {t.transfersPending}
+            </span>
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground mb-4">{t.internalTransfersDesc}</p>
+
+        {/* Add Transfer Form */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4 p-3 rounded-lg bg-muted/40">
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">{t.recipient}</label>
+            <input type="text" className="w-full border rounded p-2 text-sm bg-background" value={newTransferForm.recipient}
+              onChange={(e) => setNewTransferForm({ ...newTransferForm, recipient: e.target.value })}
+              placeholder={lang === 'ar' ? 'اسم المستفيد...' : 'Recipient name...'} />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">{t.department}</label>
+            <select className="w-full border rounded p-2 text-sm bg-background" value={newTransferForm.department}
+              onChange={(e) => setNewTransferForm({ ...newTransferForm, department: e.target.value })}>
+              <option value="Structural">{lang === 'ar' ? 'الإنشائي' : 'Structural'}</option>
+              <option value="MEP">{lang === 'ar' ? 'الميكانيكا والكهرباء' : 'MEP'}</option>
+              <option value="IT">{lang === 'ar' ? 'تقنية المعلومات' : 'IT'}</option>
+              <option value="Admin">{lang === 'ar' ? 'الإدارة' : 'Admin'}</option>
+              <option value="Finance">{lang === 'ar' ? 'المالية' : 'Finance'}</option>
+              <option value="HR">{lang === 'ar' ? 'الموارد البشرية' : 'HR'}</option>
+              <option value="Marketing">{lang === 'ar' ? 'التسويق' : 'Marketing'}</option>
+              <option value="Other">{lang === 'ar' ? 'أخرى' : 'Other'}</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">{t.amount}</label>
+            <input type="number" className="w-full border rounded p-2 text-sm bg-background" value={newTransferForm.amount}
+              onChange={(e) => setNewTransferForm({ ...newTransferForm, amount: e.target.value })} placeholder="0.00" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">{t.transferDate}</label>
+            <input type="date" className="w-full border rounded p-2 text-sm bg-background" value={newTransferForm.date}
+              onChange={(e) => setNewTransferForm({ ...newTransferForm, date: e.target.value })} />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">{t.description}</label>
+            <input type="text" className="w-full border rounded p-2 text-sm bg-background" value={newTransferForm.description}
+              onChange={(e) => setNewTransferForm({ ...newTransferForm, description: e.target.value })}
+              placeholder={lang === 'ar' ? 'ملاحظات...' : 'Notes...'} />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">{t.transferStatus}</label>
+            <select className="w-full border rounded p-2 text-sm bg-background" value={newTransferForm.status}
+              onChange={(e) => setNewTransferForm({ ...newTransferForm, status: e.target.value as 'Pending' | 'Paid' })}>
+              <option value="Pending">{t.statusPending}</option>
+              <option value="Paid">{t.statusPaid}</option>
+            </select>
+          </div>
+        </div>
+        <Button onClick={handleAddTransfer} variant="outline" className="w-full justify-center mb-4 border-amber-300 text-amber-700 hover:bg-amber-50">
+          <Plus className="w-4 h-4" /> {t.addTransfer}
+        </Button>
+
+        {/* Transfers Table */}
+        {internalTransfersList.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted text-muted-foreground">
+                <tr>
+                  <th className="p-2 text-start">{t.recipient}</th>
+                  <th className="p-2 text-start">{t.department}</th>
+                  <th className="p-2 text-start">{t.amount}</th>
+                  <th className="p-2 text-start">{t.transferDate}</th>
+                  <th className="p-2 text-start">{t.description}</th>
+                  <th className="p-2 text-start">{t.transferStatus}</th>
+                  <th className="p-2 text-end">{t.action}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {internalTransfersList.map(tr => (
+                  <tr key={tr.id}>
+                    <td className="p-2 font-medium">{tr.recipient}</td>
+                    <td className="p-2">
+                      <span className="px-2 py-0.5 rounded-full text-xs bg-blue-50 text-blue-700">{tr.department}</span>
+                    </td>
+                    <td className="p-2 font-semibold text-amber-700">{fmtMoney(Number(tr.amount))}</td>
+                    <td className="p-2 text-muted-foreground text-xs">{tr.date}</td>
+                    <td className="p-2 text-muted-foreground text-xs">{tr.description || '-'}</td>
+                    <td className="p-2">
+                      <select
+                        className="text-xs border rounded px-1 py-0.5 bg-background"
+                        value={tr.status}
+                        onChange={(e) => updateInternalTransfer.mutate({ id: tr.id, status: e.target.value as 'Pending' | 'Paid' })}>
+                        <option value="Pending">{t.statusPending}</option>
+                        <option value="Paid">{t.statusPaid}</option>
+                      </select>
+                    </td>
+                    <td className="p-2 text-end">
+                      <button onClick={() => deleteInternalTransfer.mutate({ id: tr.id })} className="text-rose-400 hover:text-rose-600">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="bg-muted font-bold">
+                <tr>
+                  <td colSpan={2} className="p-2">{lang === 'ar' ? 'الإجمالي' : 'Total'}</td>
+                  <td className="p-2 text-amber-700">{fmtMoney(financials.totalInternalTransfers)}</td>
+                  <td colSpan={4}></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        ) : (
+          <div className="p-4 text-center text-muted-foreground italic text-sm">{t.noTransfers}</div>
+        )}
+      </Card>
 
       {/* Recent Transactions */}
       <Card className="p-4">

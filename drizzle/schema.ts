@@ -59,6 +59,9 @@ export const projects = mysqlTable("projects", {
   percentComplete: decimal("percentComplete", { precision: 5, scale: 2 }).notNull().default("0"),
   isPaused: boolean("isPaused").notNull().default(false),
   pauseStartDate: varchar("pauseStartDate", { length: 30 }),
+  isArchived: boolean("isArchived").notNull().default(false),
+  archivedAt: timestamp("archivedAt"),
+  archivedBy: int("archivedBy"), // appUser id who archived
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -195,6 +198,24 @@ export const projectPhases = mysqlTable("projectPhases", {
 export type ProjectPhase = typeof projectPhases.$inferSelect;
 export type InsertProjectPhase = typeof projectPhases.$inferInsert;
 
+/**
+ * Internal Transfers - payments to internal departments or individuals within the company
+ * These are cost items that reduce project profitability (e.g., structural, MEP, IT, admin fees)
+ */
+export const internalTransfers = mysqlTable("internalTransfers", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  recipient: varchar("recipient", { length: 255 }).notNull(), // name of dept/person
+  department: varchar("department", { length: 100 }).notNull(), // e.g. Structural, MEP, IT, Admin
+  amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+  date: varchar("date", { length: 10 }).notNull(), // YYYY-MM-DD
+  description: text("description"),
+  status: mysqlEnum("status", ["Pending", "Paid"]).notNull().default("Pending"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type InternalTransfer = typeof internalTransfers.$inferSelect;
+export type InsertInternalTransfer = typeof internalTransfers.$inferInsert;
+
 // ---- Relations ----
 export const appUsersRelations = relations(appUsers, ({ many }) => ({
   projects: many(projects),
@@ -215,6 +236,7 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   payments: many(payments),
   projectEvents: many(projectEvents),
   projectPhases: many(projectPhases),
+  internalTransfers: many(internalTransfers),
 }));
 
 export const projectPhasesRelations = relations(projectPhases, ({ one }) => ({
@@ -251,4 +273,8 @@ export const expensesRelations = relations(expenses, ({ one }) => ({
 
 export const paymentsRelations = relations(payments, ({ one }) => ({
   project: one(projects, { fields: [payments.projectId], references: [projects.id] }),
+}));
+
+export const internalTransfersRelations = relations(internalTransfers, ({ one }) => ({
+  project: one(projects, { fields: [internalTransfers.projectId], references: [projects.id] }),
 }));

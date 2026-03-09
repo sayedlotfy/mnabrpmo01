@@ -130,3 +130,20 @@
 - [x] تاب المديونيات في Portfolio Dashboard (الفواتير الصادرة وغير المسددة)
 - [x] تصدير تاب المطالبات بـ PDF وExcel
 - [x] تصدير تاب المديونيات بـ PDF وExcel
+
+## تحديث: مارس 2026 - نظام أرشفة المشاريع
+- [ ] إضافة حقل isArchived (boolean) وarchivedAt (timestamp) وarchivedBy في schema
+- [ ] تطبيق db:push للمايجريشن
+- [ ] إضافة procedures: archiveProject, unarchiveProject, deleteProject (بمصادقة مزدوجة)
+- [ ] تحديث Portfolio Dashboard: زر أرشفة + إخفاء المؤرشف من الجداول والـ KPIs
+- [ ] إضافة تاب/قسم "المؤرشف" في Portfolio Dashboard لعرض المشاريع المؤرشفة
+- [ ] تحديث Project Detail: شريط تنبيه "مؤرشف" + زر إعادة تنشيط (مدير المحفظة فقط) + زر حذف بمصادقة مزدوجة
+- [ ] مصادقة مزدوجة للحذف: PIN مدير المشروع + PIN مدير المحفظة
+
+## تحديث: مارس 2026 - بند الدفعات الداخلية
+- [x] إضافة جدول internalTransfers في schema (recipient, department, amount, date, description, status)
+- [x] تطبيق db:push للمايجريشن
+- [x] إضافة procedures: CRUD للدفعات الداخلية
+- [x] إضافة قسم "الدفعات الداخلية" في تاب المصاريف بـ Project Detail
+- [x] ربط مجموع الدفعات الداخلية بحسابات التكلفة الإجمالية والربحية في KPIs
+- [ ] تحديث تصدير PDF ليشمل الدفعات الداخلية

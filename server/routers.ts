@@ -478,6 +478,50 @@ export const appRouter = router({
       }),
   }),
 
+  // ============ Internal Transfers ============
+  internalTransfers: router({
+    list: publicProcedure
+      .input(z.object({ projectId: z.number() }))
+      .query(async ({ input }) => {
+        return await db.getProjectInternalTransfers(input.projectId);
+      }),
+
+    create: publicProcedure
+      .input(z.object({
+        projectId: z.number(),
+        recipient: z.string().min(1),
+        department: z.string().min(1),
+        amount: z.string(),
+        date: z.string(),
+        description: z.string().optional(),
+        status: z.enum(["Pending", "Paid"]).default("Pending"),
+      }))
+      .mutation(async ({ input }) => {
+        return await db.createInternalTransfer(input);
+      }),
+
+    update: publicProcedure
+      .input(z.object({
+        id: z.number(),
+        recipient: z.string().optional(),
+        department: z.string().optional(),
+        amount: z.string().optional(),
+        date: z.string().optional(),
+        description: z.string().optional(),
+        status: z.enum(["Pending", "Paid"]).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        return await db.updateInternalTransfer(id, data);
+      }),
+
+    delete: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return await db.deleteInternalTransfer(input.id);
+      }),
+  }),
+
   // ============ Portfolio (Portfolio Manager View) ============
   portfolio: router({
     summary: publicProcedure.query(async () => {

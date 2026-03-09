@@ -57,6 +57,20 @@
       "when": 1773074318994,
       "tag": "0007_adorable_thanos",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1773078873465,
+      "tag": "0008_aspiring_infant_terrible",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1773078956920,
+      "tag": "0009_modern_black_tarantula",
+      "breakpoints": true
     }
   ]
 }

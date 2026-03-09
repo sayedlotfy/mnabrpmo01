@@ -13,6 +13,7 @@ import {
   payments, InsertPayment,
   projectEvents, InsertProjectEvent,
   projectPhases, InsertProjectPhase,
+  internalTransfers, InsertInternalTransfer,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -598,4 +599,31 @@ export async function getPortfolioClaimsAndDebts() {
   const totalPaid = debts.reduce((s, d) => s + d.paidAmount, 0);
 
   return { claims, debts, totalClaims, totalDebts, totalInvoiced, totalPaid };
+}
+
+// ============ Internal Transfers ============
+export async function getProjectInternalTransfers(projectId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.select().from(internalTransfers)
+    .where(eq(internalTransfers.projectId, projectId))
+    .orderBy(desc(internalTransfers.createdAt));
+}
+
+export async function createInternalTransfer(data: InsertInternalTransfer) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.insert(internalTransfers).values(data);
+}
+
+export async function updateInternalTransfer(id: number, data: Partial<InsertInternalTransfer>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.update(internalTransfers).set(data).where(eq(internalTransfers.id, id));
+}
+
+export async function deleteInternalTransfer(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.delete(internalTransfers).where(eq(internalTransfers.id, id));
 }
